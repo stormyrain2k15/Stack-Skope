@@ -1,0 +1,69 @@
+name: msi-package
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - "packaging/wix/**"
+      - "app/desktop/**"
+      - "services/host/**"
+      - "workers/inference_worker_py/**"
+      - "proto/**"
+      - ".github/workflows/msi-package.yml"
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - "packaging/wix/**"
+      - "app/desktop/**"
+      - "services/host/**"
+  workflow_dispatch:
+
+concurrency:
+  group: msi-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-msi:
+    name: Build unsigned MSI (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore + Build (Release)
+        run: |
+          dotnet restore StackScope.sln
+          dotnet build StackScope.sln -c Release --no-restore --nologo
+
+      - name: Install WiX v4 (.NET tool)
+        run: |
+          dotnet tool install --global wix
+          wix --version
+
+      - name: Add WiX UI + Bootstrapper extensions
+        run: |
+          wix extension add -g WixToolset.UI.wixext
+          wix extension add -g WixToolset.BootstrapperApplications.wixext
+
+      - name: Build MSI + Bundle
+        shell: pwsh
+        run: |
+          .\packaging\wix\build.ps1
+
+      - name: Upload MSI artifact (unsigned)
+        uses: actions/upload-artifact@v4
+        with:
+          name: StackScope-msi-unsigned-${{ github.sha }}
+          path: |
+            build/StackScope.msi
+            build/StackScope-Setup.exe
+          if-no-files-found: warn
+          retention-days: 14

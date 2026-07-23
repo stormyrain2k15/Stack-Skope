@@ -1,0 +1,65 @@
+name: dotnet-build
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - "**/*.cs"
+      - "**/*.csproj"
+      - "**/*.xaml"
+      - "**/*.props"
+      - "**/*.targets"
+      - "StackScope.sln"
+      - "Directory.Build.props"
+      - ".github/workflows/dotnet-build.yml"
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: dotnet-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Build (windows-latest, net8.0-windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: NuGet cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore StackScope.sln
+
+      - name: Build (Release)
+        run: dotnet build StackScope.sln -c Release --no-restore --nologo
+
+      - name: Test — Core
+        run: dotnet test tests/Core.Tests/StackScope.Core.Tests.csproj -c Release --no-build --nologo --logger "trx;LogFileName=core-tests.trx"
+
+      - name: Test — Adapters
+        run: dotnet test tests/Adapters.Tests/StackScope.Adapters.Tests.csproj -c Release --no-build --nologo --logger "trx;LogFileName=adapters-tests.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: "**/TestResults/*.trx"
+          if-no-files-found: ignore

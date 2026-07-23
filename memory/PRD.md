@@ -3,7 +3,7 @@
 ## Problem statement
 Standalone transformer inspection, tracing, profiling, and debugging application. Native Windows desktop. Trace: input → tokens → layers → attention heads → activations → tensors → runtime ops → driver calls → kernels → memory transactions → logits → output. Capture everything, reveal progressively.
 
-## Architecture (179 files)
+## Architecture (190 files)
 
 ```
 stackscope/
@@ -52,9 +52,24 @@ stackscope/
 No stubs. No mock data. Deferred items honestly absent. Every visual bound to a real event id. Correlation confidence labelled. Out-of-process capture. Keyboard-complete. Progressive disclosure.
 
 ## Verified in this environment
-- 179 files, Python parses + `ruff` clean.
+- 190 files, Python parses + `ruff` clean, all YAML workflows parse clean.
 - Anomaly emits `stackscope.anomaly` on NaN logit.
 - DivergenceDetector + HeadDiffAnalyzer xUnit tests assert the correct outlier.
+
+## GitHub build canaries (added Feb 2026)
+Six workflows under `.github/workflows/` act as precompile tests before the
+maintainer pulls to the Windows 10 box:
+- `dotnet-build.yml`     — windows-latest, full sln + xUnit Core + Adapters
+- `python-worker.yml`    — ubuntu + windows, ruff + pytest on 3.11
+- `proto-lint.yml`       — `buf lint` + `protoc` parse of the 3 .proto files
+- `native-workers.yml`   — CMake configure/build of llama.cpp worker
+- `msi-package.yml`      — WiX v4 unsigned MSI + Bundle, artefact uploaded
+- `codeql.yml`           — security-and-quality for C# + Python
+
+Repo hygiene added alongside: `.editorconfig`, `.gitattributes`,
+`.github/dependabot.yml` (nuget + pip + actions + submodules),
+`.github/CONTRIBUTING.md`, `.github/SECURITY.md`, issue + PR templates,
+`buf.yaml`, `docs/BUILD.md` (full Win10 walkthrough).
 
 ## Deferred honestly absent
 - Code-signing (no cert issued).

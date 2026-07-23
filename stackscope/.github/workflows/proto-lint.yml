@@ -1,0 +1,43 @@
+name: proto-lint
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - "proto/**"
+      - ".github/workflows/proto-lint.yml"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - "proto/**"
+  workflow_dispatch:
+
+jobs:
+  buf:
+    name: buf lint + breaking check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: buf lint
+        uses: bufbuild/buf-lint-action@v1
+        with:
+          input: proto
+
+      - name: protoc parse (defense-in-depth)
+        run: |
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
+          protoc --version
+          protoc -I proto --descriptor_set_out=/tmp/descriptors.pb proto/events.proto proto/worker.proto proto/coordinator.proto
+          ls -l /tmp/descriptors.pb

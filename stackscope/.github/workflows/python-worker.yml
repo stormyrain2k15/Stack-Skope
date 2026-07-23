@@ -1,0 +1,55 @@
+name: python-worker
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - "workers/inference_worker_py/**"
+      - "tests/python_worker_tests/**"
+      - "proto/**"
+      - ".github/workflows/python-worker.yml"
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: python-worker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint + Test (Python 3.11, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install worker (with dev extras)
+        working-directory: workers/inference_worker_py
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[dev]"
+
+      - name: Ruff (lint)
+        working-directory: workers/inference_worker_py
+        run: ruff check src
+
+      - name: Compile gRPC stubs
+        run: |
+          python -m pip install grpcio-tools
+          python -m grpc_tools.protoc -I proto --python_out=workers/inference_worker_py/src/stackscope_worker/_generated --grpc_python_out=workers/inference_worker_py/src/stackscope_worker/_generated proto/events.proto proto/worker.proto proto/coordinator.proto || echo "grpc codegen advisory only"
+        shell: bash
+
+      - name: Pytest
+        run: pytest tests/python_worker_tests -q

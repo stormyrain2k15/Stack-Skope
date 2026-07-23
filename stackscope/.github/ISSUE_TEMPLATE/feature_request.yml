@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a new capability, view, or backend for StackScope.
+title: "[feat] "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't you do today? Who is this for?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How would the feature work end-to-end? Include UI, capture, storage, and correlation implications.
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer touched
+      multiple: true
+      options:
+        - Tokenizer
+        - Layer graph
+        - Attention heads
+        - Activations / tensors
+        - Runtime operators
+        - Driver calls / kernels
+        - Memory transactions
+        - Logits / output
+        - UI / analysis view
+        - Packaging / installer
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

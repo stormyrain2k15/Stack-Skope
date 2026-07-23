@@ -1,0 +1,67 @@
+name: Bug report
+description: Something isn't working as expected in StackScope.
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug! Please fill in as much as you can — capture
+        logs are the single most valuable piece of information.
+  - type: input
+    id: version
+    attributes:
+      label: StackScope version
+      description: Output of `stackscope --version` or the release tag.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - WPF Desktop UI
+        - Core (transactions / correlation / storage)
+        - Format adapter (safetensors / GGUF / TF / transformers)
+        - Architecture adapter (Llama / Gemma / Qwen / Mistral / GPT-2)
+        - Driver capture — CUDA (CUPTI)
+        - Driver capture — ROCm
+        - Driver capture — Vulkan
+        - Driver capture — CPU
+        - Python inference worker
+        - llama.cpp worker
+        - Coordinator / gRPC
+        - MSI installer / packaging
+        - Docs / build scripts
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS + GPU + driver
+      placeholder: "Windows 10 Pro 22H2, RTX 4090, driver 555.99, CUDA 12.5"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, expected vs. actual behaviour.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / capture excerpts
+      description: Attach or paste worker + coordinator logs. Redact model paths if sensitive.
+      render: shell
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: I can reproduce this on the latest `main`.
+          required: false

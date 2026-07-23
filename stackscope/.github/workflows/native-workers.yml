@@ -1,0 +1,65 @@
+name: native-workers
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - "workers/llamacpp_worker/**"
+      - ".github/workflows/native-workers.yml"
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - "workers/llamacpp_worker/**"
+  workflow_dispatch:
+
+concurrency:
+  group: native-workers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cmake-configure:
+    name: CMake configure (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure llama.cpp worker (Windows / VS 2022)
+        if: matrix.os == 'windows-latest'
+        working-directory: workers/llamacpp_worker
+        shell: pwsh
+        run: |
+          if (Test-Path "vendor/llama.cpp/CMakeLists.txt") {
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+          } else {
+            Write-Warning "llama.cpp submodule not populated — skipping configure. Add it as a submodule under workers/llamacpp_worker/vendor/llama.cpp."
+          }
+
+      - name: Configure llama.cpp worker (Linux / Ninja)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: workers/llamacpp_worker
+        shell: bash
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build cmake build-essential
+          if [ -f "vendor/llama.cpp/CMakeLists.txt" ]; then
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          else
+            echo "::warning::llama.cpp submodule not populated — skipping configure."
+          fi
+
+      - name: Build llama.cpp worker (best-effort)
+        working-directory: workers/llamacpp_worker
+        shell: bash
+        run: |
+          if [ -d build ]; then
+            cmake --build build --config Release || echo "::warning::llamacpp worker build failed — non-fatal canary."
+          else
+            echo "no build dir — skipping"
+          fi

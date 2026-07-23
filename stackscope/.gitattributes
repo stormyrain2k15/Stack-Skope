@@ -1,0 +1,53 @@
+# Normalize line endings across platforms.
+* text=auto eol=lf
+
+# Windows-native files must stay CRLF
+*.sln            text eol=crlf
+*.csproj         text eol=crlf
+*.props          text eol=crlf
+*.targets        text eol=crlf
+*.wxs            text eol=crlf
+*.wxi            text eol=crlf
+*.xaml           text eol=crlf
+*.xml            text eol=crlf
+*.resx           text eol=crlf
+*.config         text eol=crlf
+*.ps1            text eol=crlf
+*.psm1           text eol=crlf
+*.bat            text eol=crlf
+*.cmd            text eol=crlf
+
+# Shell + Python + Web stay LF
+*.sh             text eol=lf
+*.py             text eol=lf
+*.pyi            text eol=lf
+*.md             text eol=lf
+*.yml            text eol=lf
+*.yaml           text eol=lf
+*.json           text eol=lf
+*.toml           text eol=lf
+*.proto          text eol=lf
+*.cs             text eol=lf
+
+# Binary — never touch
+*.png            binary
+*.jpg            binary
+*.jpeg           binary
+*.gif            binary
+*.ico            binary
+*.pdf            binary
+*.msi            binary
+*.exe            binary
+*.dll            binary
+*.pdb            binary
+*.snk            binary
+*.gguf           binary
+*.safetensors    binary
+*.pt             binary
+*.bin            binary
+*.onnx           binary
+
+# GitHub language stats — mark generated code
+proto/**/*.pb.cc  linguist-generated=true
+proto/**/*.pb.h   linguist-generated=true
+**/_generated/**  linguist-generated=true
