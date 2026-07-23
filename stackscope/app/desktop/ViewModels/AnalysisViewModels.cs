@@ -77,5 +77,8 @@ public sealed partial class AblationViewModel : ObservableObject
 {
     [ObservableProperty] private int ablateLayer = -1;
     [ObservableProperty] private int ablateHead  = -1;
-    [ObservableProperty] private string status = "Set layer/head ≥ 0 and start capture to run with head zeroed.";
+    [ObservableProperty] private string status =
+        "Set layer/head ≥ 0, then press F5 (Start Capture). The values here seed the "
+        + "capture dialog and are forwarded through RunInference so the worker zeroes that head "
+        + "before returning. -1/-1 means no ablation.";
 }

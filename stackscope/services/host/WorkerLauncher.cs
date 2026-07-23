@@ -17,6 +17,16 @@ public sealed class WorkerLauncher
     public sealed record SpawnResult(string Endpoint, Process? Process);
 
     public async Task<SpawnResult> SpawnAsync(string kind, CancellationToken ct)
+        => await SpawnAsync(kind, deviceHint: null, ct);
+
+    /// <summary>
+    /// Spawn a worker, optionally seeding its <c>STACKSCOPE_DEVICE_HINT</c>
+    /// environment variable so the worker's own default-device resolution
+    /// honours whatever the user picked in the WPF dropdown at the time
+    /// they clicked "Detect" or "Start Capture". Without this the
+    /// deviceHint on <c>StartWorkerRequest</c> would be display-only.
+    /// </summary>
+    public async Task<SpawnResult> SpawnAsync(string kind, string? deviceHint, CancellationToken ct)
     {
         // Attach mode — user has already booted a StackScope gRPC server
         // inside a running Python process via stackscope_worker.attach.attach_here.
@@ -50,6 +60,13 @@ public sealed class WorkerLauncher
             RedirectStandardError  = true,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
+        if (!string.IsNullOrWhiteSpace(deviceHint))
+        {
+            // Propagate the UI's current device pick to the worker. Both
+            // workers honour STACKSCOPE_DEVICE_HINT as the default for
+            // LoadModel.device when the request device is empty.
+            psi.EnvironmentVariables["STACKSCOPE_DEVICE_HINT"] = deviceHint;
+        }
 
         var proc = Process.Start(psi)
             ?? throw new InvalidOperationException($"Failed to launch worker '{kind}'.");

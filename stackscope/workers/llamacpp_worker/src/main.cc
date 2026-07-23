@@ -66,9 +66,20 @@ public:
                            stackscope::v1::LoadModelReply* reply) override {
         std::lock_guard<std::mutex> g(mu_);
         if (worker_) ss_worker_destroy(worker_);
+        // Fall back to STACKSCOPE_DEVICE_HINT env when the request device
+        // is empty. The coordinator seeds that env at spawn from the
+        // proto StartWorkerRequest.device_hint, which the WPF dropdown
+        // fills. Without this bridge the initial LoadModel from a
+        // freshly-spawned worker would ignore the user's device pick
+        // until the first inference RPC.
+        std::string device = req->device();
+        if (device.empty()) {
+            const char* env = std::getenv("STACKSCOPE_DEVICE_HINT");
+            if (env && *env) device = env;
+        }
         worker_ = ss_worker_create(req->model_path().c_str(),
                                     req->n_ctx(),
-                                    req->device().c_str());
+                                    device.c_str());
         if (!worker_) {
             return grpc::Status(grpc::StatusCode::INTERNAL,
                                 "ss_worker_create failed");
@@ -144,6 +155,45 @@ public:
             std::lock_guard<std::mutex> g(s->m);
             if (!s->writer->Write(msg)) s->ok.store(false);
         };
+
+        // Honestly acknowledge inputs the llama.cpp C API cannot fulfil.
+        // Per-layer / per-head hooks and attention ablation are not
+        // exposed publicly; emitting a real MARKER event (rather than
+        // silently dropping the fields) lets the WPF timeline show the
+        // user *why* their expected events aren't in the capture — and
+        // proves the fields aren't hollow.
+        auto emit_ceiling_marker = [&](const char* name, const char* detail) {
+            int64_t ts = ss_now_ns();
+            ss_event_t e{};
+            e.event_id = 0;                        // real id assigned by pipeline
+            e.timestamp_ns = ts;
+            e.kind = SS_EVT_MARKER;
+            e.token_index = -1;
+            e.layer_index = -1;
+            e.head_index  = -1;
+            e.marker_name = name;
+            e.marker_begin_ns = ts;
+            e.marker_end_ns   = ts;
+            e.payload = reinterpret_cast<const uint8_t*>(detail);
+            e.payload_len = static_cast<uint32_t>(strlen(detail));
+            sink(&e, &sc);
+        };
+        if (req->capture_level() >
+                stackscope::v1::CaptureLevel::CAPTURE_SIMPLE) {
+            emit_ceiling_marker(
+                "stackscope.capture_ceiling",
+                "llama.cpp C-API cannot emit per-layer / attention / activation "
+                "events. Requested advanced/forensic capture — only SIMPLE is "
+                "delivered by this worker.");
+        }
+        if (req->ablate_layer() >= 0 && req->ablate_head() >= 0) {
+            char detail[128];
+            snprintf(detail, sizeof(detail),
+                     "ablate L%d H%d requested but llama.cpp C-API exposes "
+                     "no per-head hook. Use the pytorch worker for ablation.",
+                     req->ablate_layer(), req->ablate_head());
+            emit_ceiling_marker("stackscope.ablation_unsupported", detail);
+        }
 
         int rc = ss_worker_run(worker_,
             req->transaction_id().c_str(),

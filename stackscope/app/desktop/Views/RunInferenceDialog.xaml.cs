@@ -38,6 +38,20 @@ public partial class RunInferenceDialog : Window
 
     public RunInferenceDialog() { InitializeComponent(); DataContext = _vm; }
 
+    /// <summary>
+    /// Seed the dialog with an ablation layer/head coming from another
+    /// view (e.g. the Analysis Lab "Attention head ablation" section).
+    /// Without this the AnalysisView fields would be display-only —
+    /// the user would think they had queued an ablation but the
+    /// dialog's own defaults (-1/-1) would win. Called by
+    /// MainWindow.OnStartCapture before ShowDialog().
+    /// </summary>
+    public void SeedAblation(int layer, int head)
+    {
+        _vm.AblateLayer = layer;
+        _vm.AblateHead  = head;
+    }
+
     private async void OnStart(object sender, RoutedEventArgs e)
     {
         var handle = WorkspaceState.Current.CurrentModelHandle;

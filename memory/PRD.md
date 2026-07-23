@@ -137,6 +137,40 @@ Repo hygiene added alongside: `.editorconfig`, `.gitattributes`,
 `.github/CONTRIBUTING.md`, `.github/SECURITY.md`, issue + PR templates,
 `buf.yaml`, `docs/BUILD.md` (full Win10 walkthrough).
 
+
+## Feb 2026 — Repo-wide "no hollow UI" audit
+Full sweep across every XAML `Command="{Binding …}"`, `Click="…"`, `[RelayCommand]`,
+and gRPC field. Fixed four disconnects where a UI control (or a proto field)
+looked functional but its value never reached the runtime:
+
+1. **AnalysisView "Attention head ablation" → RunInferenceDialog.** The two
+   textboxes updated `AblationVm.AblateLayer/AblateHead` but the capture
+   dialog used its own private -1 defaults. Added
+   `RunInferenceDialog.SeedAblation(layer, head)` called from
+   `MainWindow.OnStartCapture` so typing "L5 H3" in Analysis Lab now
+   actually zeros that head end-to-end.
+2. **Python worker ignored `request.top_p`.** Nucleus filtering was
+   missing after top-k; added a real top-p pass (keep smallest set with
+   cumulative prob ≤ top_p, always keep the top token, renormalise). Six
+   new unit tests in `test_grpc_service_wiring.py`.
+3. **`StartWorkerRequest.device_hint` was silently dropped.**
+   `CoordinatorService.StartWorker` now forwards it to
+   `WorkerLauncher.SpawnAsync(kind, deviceHint)` which sets
+   `STACKSCOPE_DEVICE_HINT` in the worker env. Python worker's
+   `_resolve_device` and llama.cpp worker's `LoadModel` both fall back to
+   that env when the request's device is empty. Both call sites
+   (`MainWindow.OnOpenModel`, `ShellViewModel.DetectDevicesAsync`) now
+   pass `WorkspaceState.SelectedDevice` as the hint.
+4. **llama.cpp worker `main.cc` silently ignored `capture_level` and
+   `ablate_layer/ablate_head`.** Now emits real `MARKER` events
+   (`stackscope.capture_ceiling`, `stackscope.ablation_unsupported`)
+   before generation so the timeline shows *why* the requested advanced
+   events aren't present — no more silent drops.
+
+All 54 Python tests pass. C# code changes are static-analysis verified
+(cannot compile WPF in the Linux container).
+
+
 ## Deferred honestly absent
 - Code-signing (no cert issued).
 - Metal / Apple; Unreal client.

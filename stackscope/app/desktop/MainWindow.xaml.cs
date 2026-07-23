@@ -117,8 +117,11 @@ public partial class MainWindow : Window
             {
                 var kind = dlg.FileName.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
                     ? "llamacpp" : "pytorch";
+                // Seed device_hint from the current dropdown pick so the
+                // freshly-spawned worker already prefers that device on
+                // its first LoadModel (env-driven, via WorkerLauncher).
                 var started = await coord.StartWorkerAsync(new StackScope.Proto.V1.StartWorkerRequest
-                { Kind = kind });
+                { Kind = kind, DeviceHint = WorkspaceState.Current.SelectedDevice ?? "" });
                 workerId = started.Worker.WorkerId;
             }
             else workerId = workers.Workers[0].WorkerId;
@@ -153,6 +156,12 @@ public partial class MainWindow : Window
     private void OnStartCapture(object sender, ExecutedRoutedEventArgs e)
     {
         _runDialog = new Views.RunInferenceDialog { Owner = this };
+        // Bridge AnalysisView's ablation fields into the capture dialog so
+        // typing "Layer 5 / Head 3" in the Analysis Lab actually causes
+        // the capture to zero that head. Without this bridge the boxes
+        // were display-only. -1/-1 means "no ablation".
+        _runDialog.SeedAblation(_shell.AblationVm.AblateLayer,
+                                _shell.AblationVm.AblateHead);
         var ok = _runDialog.ShowDialog();
         if (ok == true && _runDialog.TransactionId is not null)
         {

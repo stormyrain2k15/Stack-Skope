@@ -127,8 +127,19 @@ class InferenceWorkerServicer:
         Accepts: ``""``, ``"cpu"``, ``"cuda:N"``, ``"dml:N"`` (DirectML
         via torch-directml), ``"mps"``. Falls back to CPU if the
         requested runtime is unavailable rather than exploding.
+
+        When the request is empty and ``STACKSCOPE_DEVICE_HINT`` is set
+        (the coordinator seeds this from ``StartWorkerRequest.device_hint``
+        which the WPF dropdown fills), we use that as the default so
+        the very first LoadModel already honours the user's UI pick
+        even before RunInference runs.
         """
         req = (requested or "").strip().lower()
+        if req == "":
+            hint = (os.environ.get("STACKSCOPE_DEVICE_HINT") or "").strip().lower()
+            if hint:
+                req = hint
+                log.info("device empty on LoadModel — using STACKSCOPE_DEVICE_HINT=%s", hint)
         if req == "" or req == "cpu":
             return "cpu"
         if req.startswith("cuda") and torch.cuda.is_available():
@@ -288,6 +299,22 @@ class InferenceWorkerServicer:
                             v, idx = torch.topk(probs, request.top_k)
                             probs = torch.zeros_like(probs).scatter_(1, idx, v)
                             probs = probs / probs.sum(dim=-1, keepdim=True)
+                        # Nucleus (top-p) filter: keep the smallest set of
+                        # tokens whose cumulative probability exceeds top_p,
+                        # zero the rest, renormalise. Runs after top-k so
+                        # both filters compose the way llama.cpp orders
+                        # them (top-k → top-p → temp).
+                        if 0.0 < request.top_p < 1.0:
+                            sorted_probs, sorted_idx = torch.sort(probs, descending=True, dim=-1)
+                            cum = torch.cumsum(sorted_probs, dim=-1)
+                            keep = cum <= request.top_p
+                            # Always keep the top token so we never end up
+                            # with an all-zero row when the first token
+                            # already exceeds top_p.
+                            keep[..., 0] = True
+                            filtered = torch.where(keep, sorted_probs, torch.zeros_like(sorted_probs))
+                            probs = torch.zeros_like(probs).scatter_(1, sorted_idx, filtered)
+                            probs = probs / probs.sum(dim=-1, keepdim=True).clamp_min(1e-12)
                         next_id = torch.multinomial(probs, 1, generator=gen)
                     else:
                         next_id = torch.argmax(logits, dim=-1, keepdim=True)

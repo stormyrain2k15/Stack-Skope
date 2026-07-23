@@ -75,7 +75,15 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         System.Diagnostics.Process? spawned = null;
         if (string.IsNullOrWhiteSpace(endpoint))
         {
-            var res = await _launcher.SpawnAsync(request.Kind, context.CancellationToken);
+            // Forward the caller's device_hint so the worker's env carries
+            // the current UI pick — the Python worker's _resolve_device
+            // and the llama.cpp worker's LoadModel.device both fall back
+            // to STACKSCOPE_DEVICE_HINT when the LoadModel device string
+            // is empty. Without this the proto field was inert.
+            var res = await _launcher.SpawnAsync(
+                request.Kind,
+                string.IsNullOrWhiteSpace(request.DeviceHint) ? null : request.DeviceHint,
+                context.CancellationToken);
             endpoint = res.Endpoint;
             spawned = res.Process;
         }

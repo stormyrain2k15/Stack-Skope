@@ -123,8 +123,13 @@ public sealed partial class ShellViewModel : ObservableObject
             string workerId;
             if (list.Workers.Count == 0)
             {
+                // Pass the currently-selected device (if any) so the newly
+                // launched worker starts already aware of the user's
+                // preferred accelerator. Empty string ⇒ worker picks its
+                // own default.
                 var started = await client.StartWorkerAsync(new StackScope.Proto.V1.StartWorkerRequest
-                { Kind = "pytorch" });
+                { Kind = "pytorch",
+                  DeviceHint = WorkspaceState.Current.SelectedDevice ?? "" });
                 workerId = started.Worker.WorkerId;
             }
             else workerId = list.Workers[0].WorkerId;
