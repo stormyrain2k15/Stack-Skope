@@ -50,6 +50,8 @@ public static class Commands
     public static readonly RoutedUICommand Annotations       = New("Notes: Annotations",         "Annotations",       Key.K, ModifierKeys.Control | ModifierKeys.Alt);
     public static readonly RoutedUICommand DebugToken        = New("Debug this token",           "DebugToken",        Key.F4);
     public static readonly RoutedUICommand NaturalQuery      = New("Natural Language Query",     "NaturalQuery",      Key.OemQuestion, ModifierKeys.Control);
+    public static readonly RoutedUICommand PinBoard          = New("Diff: Pin Board",            "PinBoard",          Key.P, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand PinCurrentDiff    = New("Diff: Pin Current",          "PinCurrentDiff",    Key.P, ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift);
 
     private static RoutedUICommand New(string text, string name, Key key,
                                        ModifierKeys mods = ModifierKeys.None)
@@ -70,6 +72,6 @@ public static class Commands
         InspectHooks, BundleWorkbench, LiveTail, MCPServer, AttachSession,
         ReproDiff, BugReport,
         HealthDashboard, QuantizationDiff, DeterminismAudit, AttributionGraph,
-        Annotations, DebugToken, NaturalQuery,
+        Annotations, DebugToken, NaturalQuery, PinBoard, PinCurrentDiff,
     };
 }

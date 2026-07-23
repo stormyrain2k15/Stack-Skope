@@ -132,13 +132,53 @@ public class ProjectServiceAutoCompareTests
     [Fact]
     public void WasAblated_Is_True_Only_When_Both_Indices_Are_Set()
     {
-        var t1 = new TransactionMetadata("t1", "m", "arch", 0, 0, true, null, "p", -1, -1);
-        var t2 = new TransactionMetadata("t2", "m", "arch", 0, 0, true, null, "p",  5, -1);
-        var t3 = new TransactionMetadata("t3", "m", "arch", 0, 0, true, null, "p", -1,  2);
-        var t4 = new TransactionMetadata("t4", "m", "arch", 0, 0, true, null, "p",  5,  2);
+        var t1 = new TransactionMetadata("t1", "m", "arch", 0, 0, true, null, "p", -1, -1, null);
+        var t2 = new TransactionMetadata("t2", "m", "arch", 0, 0, true, null, "p",  5, -1, null);
+        var t3 = new TransactionMetadata("t3", "m", "arch", 0, 0, true, null, "p", -1,  2, null);
+        var t4 = new TransactionMetadata("t4", "m", "arch", 0, 0, true, null, "p",  5,  2, null);
         Assert.False(t1.WasAblated);
         Assert.False(t2.WasAblated);
         Assert.False(t3.WasAblated);
         Assert.True (t4.WasAblated);
+    }
+
+    [Fact]
+    public void HasCaptureCeiling_Reflects_Meta_Row()
+    {
+        var t1 = new TransactionMetadata("t1", "m", "arch", 0, 0, true, null, "p", -1, -1, null);
+        var t2 = new TransactionMetadata("t2", "m", "arch", 0, 0, true, null, "p", -1, -1, "");
+        var t3 = new TransactionMetadata("t3", "m", "arch", 0, 0, true, null, "p", -1, -1,
+            "stackscope.capture_ceiling: llama.cpp SIMPLE only");
+        Assert.False(t1.HasCaptureCeiling);
+        Assert.False(t2.HasCaptureCeiling);
+        Assert.True (t3.HasCaptureCeiling);
+    }
+
+    [Fact]
+    public void ListTransactions_Roundtrips_CaptureCeiling_Meta()
+    {
+        var root = FreshProjectRoot();
+        try
+        {
+            var project = new ProjectService(root);
+            using (var store = project.OpenOrCreateStore("01CEILING"))
+            {
+                store.Index.SetMeta("model_handle", "m");
+                store.Index.SetMeta("architecture", "arch");
+                store.Index.SetMeta("started_ns", "1");
+                store.Index.SetMeta("ended_ns",   "2");
+                store.Index.SetMeta("completed",  "true");
+                store.Index.SetMeta("prompt", "hi");
+                store.Index.SetMeta("ablate_layer", "-1");
+                store.Index.SetMeta("ablate_head",  "-1");
+                store.Index.SetMeta("capture_ceiling",
+                    "stackscope.capture_ceiling: llama.cpp SIMPLE only");
+                store.Flush();
+            }
+            var t = project.ListTransactions().Single(x => x.TransactionId == "01CEILING");
+            Assert.True(t.HasCaptureCeiling);
+            Assert.Contains("SIMPLE only", t.CaptureCeiling!);
+        }
+        finally { try { Directory.Delete(root, true); } catch { } }
     }
 }

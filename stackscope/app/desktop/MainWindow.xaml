@@ -49,6 +49,8 @@
         <KeyBinding Command="{x:Static cmd:Commands.Annotations}"        Key="K" Modifiers="Control+Alt"/>
         <KeyBinding Command="{x:Static cmd:Commands.DebugToken}"         Key="F4"/>
         <KeyBinding Command="{x:Static cmd:Commands.NaturalQuery}"       Key="OemQuestion" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.PinBoard}"           Key="P" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.PinCurrentDiff}"     Key="P" Modifiers="Control+Alt+Shift"/>
     </Window.InputBindings>
 
     <Window.CommandBindings>
@@ -89,6 +91,8 @@
         <CommandBinding Command="{x:Static cmd:Commands.AttributionGraph}"   Executed="OnFocusPane" CommandParameter="attribution"/>
         <CommandBinding Command="{x:Static cmd:Commands.Annotations}"        Executed="OnFocusPane" CommandParameter="notes"/>
         <CommandBinding Command="{x:Static cmd:Commands.NaturalQuery}"       Executed="OnFocusPane" CommandParameter="nlquery"/>
+        <CommandBinding Command="{x:Static cmd:Commands.PinBoard}"           Executed="OnFocusPane" CommandParameter="pinboard"/>
+        <CommandBinding Command="{x:Static cmd:Commands.PinCurrentDiff}"     Executed="OnPinCurrentDiff"/>
         <CommandBinding Command="{x:Static cmd:Commands.DebugToken}"         Executed="OnDebugToken"/>
     </Window.CommandBindings>
 
@@ -149,6 +153,9 @@
                 <MenuItem Header="Determinism A_udit" Command="{x:Static cmd:Commands.DeterminismAudit}" InputGestureText="Ctrl+Alt+U"/>
                 <MenuItem Header="Attribution _Graph" Command="{x:Static cmd:Commands.AttributionGraph}" InputGestureText="Ctrl+Alt+G"/>
                 <Separator/>
+                <MenuItem Header="Diff _Pin Board"    Command="{x:Static cmd:Commands.PinBoard}"        InputGestureText="Ctrl+Alt+P"/>
+                <MenuItem Header="_Pin Current Diff"  Command="{x:Static cmd:Commands.PinCurrentDiff}"  InputGestureText="Ctrl+Alt+Shift+P"/>
+                <Separator/>
                 <MenuItem Header="Debug this _token"  Command="{x:Static cmd:Commands.DebugToken}"       InputGestureText="F4"/>
             </MenuItem>
         </Menu>
@@ -189,6 +196,18 @@
                         <TextBlock>
                             <Run Text="on: "/><Run Text="{Binding ResolvedDevice, FallbackValue='—'}" FontFamily="Consolas"/>
                         </TextBlock>
+                    </Border>
+                    <Border Padding="6,2" Margin="6,0,0,0" CornerRadius="4"
+                            Background="{StaticResource Brush.Accent.Rust}"
+                            Visibility="{Binding HasCaptureCeiling, Converter={StaticResource BoolVis}}"
+                            ToolTip="{Binding CaptureCeiling}"
+                            AutomationProperties.Name="Capture ceiling">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠ ceiling: " Foreground="White"/>
+                            <TextBlock Text="{Binding CaptureCeiling}" Foreground="White"
+                                       FontFamily="Consolas" TextTrimming="CharacterEllipsis"
+                                       MaxWidth="360"/>
+                        </StackPanel>
                     </Border>
                     <Button Content="Detect" Command="{Binding DetectDevicesCommand}"
                             MinWidth="72" Margin="6,0,0,0"
@@ -329,6 +348,9 @@
                         </avalonDock:LayoutDocument>
                         <avalonDock:LayoutDocument Title="Bug Report" ContentId="bugreport">
                             <v:BugReportExporterView DataContext="{Binding BugReportVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Diff Pins" ContentId="pinboard">
+                            <v:PinnedDiffsView DataContext="{Binding PinBoardVm}"/>
                         </avalonDock:LayoutDocument>
                     </avalonDock:LayoutDocumentPane>
 

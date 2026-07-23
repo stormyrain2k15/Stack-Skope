@@ -234,6 +234,7 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         ulong count = 0;
         int tokens = 0;
         string? err = null;
+        string? captureCeiling = null;
         try
         {
             await foreach (var e in adapter.RunInferenceAsync(args, context.CancellationToken))
@@ -241,6 +242,25 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
                 store.Append(e);
                 count++;
                 if (e.Kind == EventKind.TokenEnd) tokens++;
+                // Watch for honest capacity markers emitted by workers
+                // (llama.cpp's C API can't do per-head/per-layer or
+                // ablation). Persist the first such marker's payload so
+                // the WPF status bar can loudly explain the fallback.
+                if (captureCeiling is null && e.Kind == EventKind.Marker)
+                {
+                    foreach (var mk in e.Markers)
+                    {
+                        if (mk.Name == "stackscope.capture_ceiling" ||
+                            mk.Name == "stackscope.ablation_unsupported")
+                        {
+                            var detail = e.Payload.Length > 0
+                                ? System.Text.Encoding.UTF8.GetString(e.Payload.Span)
+                                : mk.Name;
+                            captureCeiling = $"{mk.Name}: {detail}";
+                            break;
+                        }
+                    }
+                }
                 if ((count % 128) == 0)
                 {
                     await responseStream.WriteAsync(new RunProgress
@@ -264,6 +284,7 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
             store.Flush();
             store.Index.SetMeta("completed", err is null ? "true" : "false");
             if (err is not null) store.Index.SetMeta("error", err);
+            if (captureCeiling is not null) store.Index.SetMeta("capture_ceiling", captureCeiling);
 
             await responseStream.WriteAsync(new RunProgress
             {

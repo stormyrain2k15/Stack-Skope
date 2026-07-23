@@ -44,6 +44,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public AttributionGraphViewModel    AttributionVm    { get; }
     public AnnotationsViewModel         NotesVm          { get; }
     public NaturalQueryViewModel        NaturalQueryVm   { get; }
+    public PinnedDiffsViewModel         PinBoardVm       { get; }
 
     [ObservableProperty] private string inspectorEventId = "—";
     [ObservableProperty] private string inspectorKind    = "—";
@@ -57,6 +58,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public DisclosureMode Disclosure          => WorkspaceState.Current.Disclosure;
     public string?       RecoveryBanner       => WorkspaceState.Current.RecoveryBanner;
     public bool          HasRecoveryBanner    => !string.IsNullOrEmpty(WorkspaceState.Current.RecoveryBanner);
+    public string?       CaptureCeiling       => WorkspaceState.Current.CaptureCeiling;
+    public bool          HasCaptureCeiling    => !string.IsNullOrEmpty(WorkspaceState.Current.CaptureCeiling);
 
     public ShellViewModel(ProjectService project, QueryService query)
     {
@@ -98,6 +101,7 @@ public sealed partial class ShellViewModel : ObservableObject
         AttributionVm    = new AttributionGraphViewModel(project);
         NotesVm          = new AnnotationsViewModel(project);
         NaturalQueryVm   = new NaturalQueryViewModel();
+        PinBoardVm       = new PinnedDiffsViewModel(project, CompareVm);
 
         DetectDevicesCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(DetectDevicesAsync);
     }
@@ -167,5 +171,7 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(Disclosure));
         OnPropertyChanged(nameof(RecoveryBanner));
         OnPropertyChanged(nameof(HasRecoveryBanner));
+        OnPropertyChanged(nameof(CaptureCeiling));
+        OnPropertyChanged(nameof(HasCaptureCeiling));
     }
 }

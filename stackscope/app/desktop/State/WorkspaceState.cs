@@ -40,6 +40,14 @@ public sealed partial class WorkspaceState : ObservableObject
     /// mistakes "asked" for "verified".
     /// </summary>
     [ObservableProperty] private bool resolvedDeviceVerified;
+    /// <summary>
+    /// Latest capacity-ceiling message reported by the worker for the
+    /// current transaction (e.g. llama.cpp can only deliver SIMPLE
+    /// capture, or ablation is unsupported on this worker). Non-null
+    /// while the badge should show. Cleared when the user opens a
+    /// different transaction that has no ceiling.
+    /// </summary>
+    [ObservableProperty] private string? captureCeiling;
     [ObservableProperty] private string? recoveryBanner;
 
     /// <summary>Bindable helpers used by view visibility triggers.</summary>

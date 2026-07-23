@@ -186,6 +186,31 @@ looked functional but its value never reached the runtime:
 All 54 Python tests pass. C# code changes are static-analysis verified
 (cannot compile WPF in the Linux container).
 
+## Feb 2026 — Capture-Ceiling Badge + Diff Pin Board
+
+**Capture-Ceiling Badge** — When a worker emits a
+`stackscope.capture_ceiling` or `stackscope.ablation_unsupported`
+marker (currently llama.cpp), the coordinator now records the
+detail string into the transaction's SQLite index as
+`capture_ceiling`. `TransactionMetadata` exposes `CaptureCeiling` +
+`HasCaptureCeiling`. `WorkspaceState.CaptureCeiling` is refreshed both
+after Start Capture and when the user selects a different row in the
+Capture Library. A rust-coloured badge next to the resolved-device
+badge shows the message and full tooltip. Silent fallbacks are gone.
+
+**Diff Pin Board** — Saved (baseline ⇆ candidate) diffs survive
+across sessions in a project-scoped `pinned_diffs.sqlite` file at
+`ProjectService.PinnedDiffsDbPath`. New `PinnedDiff` record +
+`PinnedDiffStore` (CRUD; rejects empty tx ids; newest-first list).
+New `PinnedDiffsViewModel` exposes Refresh / PinCurrent /
+OpenSelected / DeleteSelected / SaveSelectedNote commands. New
+`PinnedDiffsView` docks alongside the other panels. Compare view
+gets "Pin this diff" and "Open Pin Board" buttons. Two new commands
+(`PinBoard`, `PinCurrentDiff`) plus Ctrl+Alt+P / Ctrl+Alt+Shift+P
+hotkeys. Six new xUnit tests in `PinnedDiffStoreTests.cs`
+(roundtrip, ordering, empty-id rejection, delete, update-note,
+reopen-preserves-data).
+
 
 ## Deferred honestly absent
 - Code-signing (no cert issued).

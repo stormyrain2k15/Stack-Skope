@@ -177,6 +177,13 @@ public partial class MainWindow : Window
             // no silent no-op.
             var justRan = _project.ListTransactions()
                 .FirstOrDefault(t => t.TransactionId == _runDialog.TransactionId);
+
+            // Surface the capacity-ceiling badge for whichever worker
+            // handled this run. Cleared here even for non-ablated runs
+            // so switching workers between captures updates the top-bar
+            // truthfully. Null-safe: no metadata row means no badge.
+            WorkspaceState.Current.CaptureCeiling = justRan?.CaptureCeiling;
+
             if (justRan is not null && justRan.WasAblated)
             {
                 var baseline = _project.FindLatestNonAblatedBaseline(justRan);
@@ -268,6 +275,20 @@ public partial class MainWindow : Window
     }
 
     private void OnExit(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>
+    /// Ctrl+Alt+Shift+P — pin whatever the Compare view has loaded into
+    /// the persistent Pin Board, then open the Pin Board pane so the
+    /// user sees the new row. Delegates the "is there anything to pin"
+    /// guard to <see cref="PinnedDiffsViewModel.PinCurrent"/> which
+    /// updates its Status message instead of throwing.
+    /// </summary>
+    private void OnPinCurrentDiff(object sender, ExecutedRoutedEventArgs e)
+    {
+        _shell.PinBoardVm.PinCurrentCommand.Execute(null);
+        FocusPane("pinboard");
+        StatusText.Text = _shell.PinBoardVm.Status;
+    }
 
     private void OnFocusPane(object sender, ExecutedRoutedEventArgs e)
     {

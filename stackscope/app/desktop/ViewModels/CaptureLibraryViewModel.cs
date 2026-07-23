@@ -33,6 +33,10 @@ public sealed partial class CaptureLibraryViewModel : ObservableObject
         if (value is null) return;
         WorkspaceState.Current.CurrentTransactionId = value.TransactionId;
         SelectionState.Current.TransactionId = value.TransactionId;
+        // Keep the capture-ceiling badge in sync with the currently
+        // selected transaction — otherwise the badge from an earlier
+        // capture would stick around when the user switches library rows.
+        WorkspaceState.Current.CaptureCeiling = value.CaptureCeiling;
     }
 }
 

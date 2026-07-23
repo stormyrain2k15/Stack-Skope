@@ -1,6 +1,7 @@
 <UserControl x:Class="StackScope.Desktop.Views.CompareView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cmd="clr-namespace:StackScope.Desktop.Commands"
              Background="{StaticResource Brush.Surface.Panel}">
     <DockPanel LastChildFill="True" Margin="16">
         <TextBlock DockPanel.Dock="Top" Text="Compare / Diff Mode"
@@ -38,6 +39,22 @@
                     VerticalAlignment="Bottom" Margin="8,0,0,0" Padding="12,4"
                     AutomationProperties.Name="Clear diff ranking"/>
         </Grid>
+
+        <!-- Pin action row: routed command so the button hits the same
+             handler as the Ctrl+Alt+Shift+P hotkey. Enable only when
+             both transaction fields are populated. -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="Pin this diff"
+                    Command="{x:Static cmd:Commands.PinCurrentDiff}"
+                    Padding="12,4" Margin="0,0,8,0"
+                    ToolTip="Save this L/R/σ pair to the Diff Pin Board (Ctrl+Alt+Shift+P)."
+                    AutomationProperties.Name="Pin current diff to board"/>
+            <Button Content="Open Pin Board"
+                    Command="{x:Static cmd:Commands.PinBoard}"
+                    Padding="12,4"
+                    ToolTip="Show the persistent Diff Pin Board (Ctrl+Alt+P)."
+                    AutomationProperties.Name="Open diff pin board"/>
+        </StackPanel>
 
         <Border DockPanel.Dock="Top" Padding="8,4"
                 Background="{StaticResource Brush.Surface.Elevated}"

@@ -12,6 +12,10 @@ public sealed class ProjectService
     public string CapturesDir => Path.Combine(RootDir, "captures");
     public string ModelsCacheDir => Path.Combine(RootDir, "models");
     public string LayoutsDir => Path.Combine(RootDir, "layouts");
+    /// <summary>Path to the project-scoped SQLite file backing the
+    /// diff pin board. Lives at the project root (not per-capture)
+    /// because a pin references *two* captures.</summary>
+    public string PinnedDiffsDbPath => Path.Combine(RootDir, "pinned_diffs.sqlite");
 
     private readonly Dictionary<string, (string Device, bool Verified)> _resolvedByHandle = new();
 
@@ -74,13 +78,14 @@ public sealed class ProjectService
                     idx.GetMeta("error"),
                     idx.GetMeta("prompt") ?? "",
                     ablateLayer,
-                    ablateHead));
+                    ablateHead,
+                    idx.GetMeta("capture_ceiling")));
             }
             catch
             {
                 // Corrupt / partial index — surface as partial capture.
                 list.Add(new TransactionMetadata(
-                    txid, "", "", 0, 0, false, "index unreadable", "", -1, -1));
+                    txid, "", "", 0, 0, false, "index unreadable", "", -1, -1, null));
             }
         }
         list.Sort((a, b) => b.StartedNs.CompareTo(a.StartedNs));
@@ -128,7 +133,12 @@ public sealed record TransactionMetadata(
     string? Error,
     string Prompt,
     int    AblateLayer,
-    int    AblateHead)
+    int    AblateHead,
+    string? CaptureCeiling)
 {
     public bool WasAblated => AblateLayer >= 0 && AblateHead >= 0;
+    /// <summary>True when the worker emitted a capacity-ceiling marker
+    /// (e.g. llama.cpp can't do advanced capture / ablation). The WPF
+    /// status bar surfaces this so users see the fallback loudly.</summary>
+    public bool HasCaptureCeiling => !string.IsNullOrEmpty(CaptureCeiling);
 }
