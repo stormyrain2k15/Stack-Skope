@@ -53,8 +53,21 @@ No stubs. No mock data. Deferred items honestly absent. Every visual bound to a 
 
 ## Verified in this environment
 - 190 files, Python parses + `ruff` clean, all YAML workflows parse clean.
+- Python worker tests: **7 passed, 1 skipped, 0 failed** (HF network test skipped).
 - Anomaly emits `stackscope.anomaly` on NaN logit.
 - DivergenceDetector + HeadDiffAnalyzer xUnit tests assert the correct outlier.
+
+## Bug fixes landed (Feb 2026)
+- **LAYER_BEGIN over-count** — a 3-block model was emitting 6 `LAYER_BEGIN`
+  events because `infer_layer_index()` returns the same layer id for any
+  descendant of `model.layers.<N>` (needed for tagging attention/activation
+  events with their owning layer), so the old gate
+  `(layer_idx >= 0 and proj is None)` matched inner leaves like
+  `model.layers.<N>.mlp` too. Fixed by introducing
+  `is_transformer_block(name)` — True iff the last two dotted segments are
+  `<container>.<int>` — and gating `LAYER_BEGIN`/`LAYER_END` on that flag.
+  Verified by testing agent (iteration 1): `test_hook_capture_emits_token_and_layer_events`
+  now green, new regression `test_is_transformer_block_only_matches_block_itself` added.
 
 ## GitHub build canaries (added Feb 2026)
 Six workflows under `.github/workflows/` act as precompile tests before the

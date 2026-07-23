@@ -7,13 +7,8 @@ produced at install time by the ``scripts/gen_proto.sh`` helper.
 """
 from __future__ import annotations
 
-import argparse
-import asyncio
 import logging
 import os
-import time
-from concurrent import futures
-from typing import Optional
 
 import grpc
 import torch

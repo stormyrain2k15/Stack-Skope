@@ -22,12 +22,10 @@ module upgrades capture with two techniques:
 """
 from __future__ import annotations
 
-import math
 import os
 import struct
 import threading
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 import torch
