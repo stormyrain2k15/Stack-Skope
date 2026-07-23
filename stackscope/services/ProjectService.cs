@@ -16,6 +16,8 @@ public sealed class ProjectService
     /// diff pin board. Lives at the project root (not per-capture)
     /// because a pin references *two* captures.</summary>
     public string PinnedDiffsDbPath => Path.Combine(RootDir, "pinned_diffs.sqlite");
+    /// <summary>SQLite backing <see cref="AblationPreset"/> rows.</summary>
+    public string AblationPresetsDbPath => Path.Combine(RootDir, "ablation_presets.sqlite");
 
     private readonly Dictionary<string, (string Device, bool Verified)> _resolvedByHandle = new();
 

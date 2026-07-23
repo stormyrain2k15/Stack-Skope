@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using StackScope.Core.Comparison;
+using StackScope.Core.Models;
 using StackScope.Core.Storage;
 using StackScope.Services;
 
@@ -19,17 +21,19 @@ public sealed partial class AblationSweepCell : ObservableObject
 {
     [ObservableProperty] private int _layer;
     [ObservableProperty] private int _head;
+    [ObservableProperty] private string _prompt = "";
+    [ObservableProperty] private int _promptIndex;
     [ObservableProperty] private double _sigmaShift;
     [ObservableProperty] private string _transactionId = "";
     [ObservableProperty] private string _state = "queued";   // queued | running | done | failed
     [ObservableProperty] private string? _error;
 
     public string Tooltip =>
-        $"L{Layer} · H{Head}\n" +
+        $"prompt #{PromptIndex}: {Prompt}\nL{Layer} · H{Head}\n" +
         (State == "queued"  ? "Waiting…" :
          State == "running" ? $"Running ({TransactionId})…" :
          State == "failed"  ? $"Failed: {Error}" :
-                              $"σ={SigmaShift:F3}  txn {TransactionId}");
+                              $"σ={SigmaShift:F3}  txn {TransactionId}\n(click to pin against baseline)");
 
     /// <summary>
     /// Fill colour for the cell — deeper red for higher sigma. Uses a
@@ -89,6 +93,7 @@ public sealed partial class AblationSweepCell : ObservableObject
 public sealed partial class AblationSweepViewModel : ObservableObject
 {
     private readonly ProjectService _project;
+    private readonly PinnedDiffsViewModel _pinBoardVm;
     private CancellationTokenSource? _cts;
 
     [ObservableProperty] private string _baselineTransactionId = "";
@@ -97,6 +102,12 @@ public sealed partial class AblationSweepViewModel : ObservableObject
     [ObservableProperty] private int _headStart;
     [ObservableProperty] private int _headEnd;
     [ObservableProperty] private double _sigmaThreshold = 1.0;
+    /// <summary>Extra prompts (one per line) for cross-prompt attribution.
+    /// The baseline transaction's own prompt is always the first column;
+    /// each additional non-empty line runs the same sweep against that
+    /// prompt using the baseline's model handle.</summary>
+    [ObservableProperty] private string _extraPromptsText = "";
+    [ObservableProperty] private bool _resumeFromLastRun = true;
     [ObservableProperty] private string _status = "Pick a baseline, set a range, hit Run sweep.";
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private int _cellsDone;
@@ -104,10 +115,15 @@ public sealed partial class AblationSweepViewModel : ObservableObject
 
     public ObservableCollection<AblationSweepCell> Cells { get; } = new();
 
-    public int LayerCount => Math.Max(1, LayerEnd - LayerStart + 1);
-    public int HeadCount  => Math.Max(1, HeadEnd  - HeadStart + 1);
+    public int LayerCount  => Math.Max(1, LayerEnd - LayerStart + 1);
+    public int HeadCount   => Math.Max(1, HeadEnd  - HeadStart + 1);
+    public int PromptCount { get; private set; } = 1;
 
-    public AblationSweepViewModel(ProjectService project) { _project = project; }
+    public AblationSweepViewModel(ProjectService project, PinnedDiffsViewModel pinBoardVm)
+    {
+        _project = project;
+        _pinBoardVm = pinBoardVm;
+    }
 
     partial void OnLayerStartChanged(int value) { OnPropertyChanged(nameof(LayerCount)); }
     partial void OnLayerEndChanged(int value)   { OnPropertyChanged(nameof(LayerCount)); }
@@ -145,15 +161,56 @@ public sealed partial class AblationSweepViewModel : ObservableObject
         int H0 = Math.Min(HeadStart,  HeadEnd);
         int H1 = Math.Max(HeadStart,  HeadEnd);
 
+        // Build prompt column list. Column 0 is always the baseline
+        // prompt (needed for the baseline diff to be meaningful);
+        // extras follow in the order the user typed them, blank lines
+        // and duplicates dropped so the heatmap columns are unique.
+        var prompts = new List<string> { baseline.Prompt ?? "" };
+        foreach (var line in (ExtraPromptsText ?? "")
+                             .Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var p = line.Trim();
+            if (p.Length > 0 && !prompts.Contains(p)) prompts.Add(p);
+        }
+        PromptCount = prompts.Count;
+        OnPropertyChanged(nameof(PromptCount));
+
+        // Resume support: load previous cells from disk keyed by
+        // (baseline, range, prompt) so a cancelled/crashed sweep can
+        // pick up where it stopped instead of restarting at L0/H0.
+        var resumeMap = ResumeFromLastRun
+            ? LoadResumeState(BaselineTransactionId, L0, L1, H0, H1, prompts)
+            : new Dictionary<string, (string txid, double sigma)>(StringComparer.Ordinal);
+
         Cells.Clear();
-        for (int l = L0; l <= L1; l++)
-            for (int h = H0; h <= H1; h++)
-                Cells.Add(new AblationSweepCell { Layer = l, Head = h, State = "queued" });
+        for (int pi = 0; pi < prompts.Count; pi++)
+        {
+            for (int l = L0; l <= L1; l++)
+                for (int h = H0; h <= H1; h++)
+                {
+                    var cell = new AblationSweepCell
+                    {
+                        Layer = l, Head = h,
+                        Prompt = prompts[pi], PromptIndex = pi,
+                        State = "queued",
+                    };
+                    var key = ResumeKey(pi, l, h);
+                    if (resumeMap.TryGetValue(key, out var prior))
+                    {
+                        cell.TransactionId = prior.txid;
+                        cell.SigmaShift    = prior.sigma;
+                        cell.State         = "done";
+                    }
+                    Cells.Add(cell);
+                }
+        }
         CellsTotal = Cells.Count;
-        CellsDone  = 0;
+        CellsDone  = Cells.Count(c => c.State == "done");
         IsRunning  = true;
         _cts = new CancellationTokenSource();
-        Status = $"Running sweep: {LayerCount}×{HeadCount} = {CellsTotal} captures.";
+        Status = resumeMap.Count > 0
+            ? $"Resuming {CellsDone}/{CellsTotal} pre-computed cells."
+            : $"Running sweep: {prompts.Count}×{LayerCount}×{HeadCount} = {CellsTotal} captures.";
 
         try
         {
@@ -178,6 +235,7 @@ public sealed partial class AblationSweepViewModel : ObservableObject
             foreach (var cell in Cells)
             {
                 if (_cts.IsCancellationRequested) break;
+                if (cell.State == "done") continue;   // resumed from disk
                 cell.State = "running";
                 try
                 {
@@ -185,7 +243,7 @@ public sealed partial class AblationSweepViewModel : ObservableObject
                     {
                         WorkerId = workerId,
                         ModelHandle = handle!,
-                        Prompt = baseline.Prompt,
+                        Prompt = cell.Prompt,
                         MaxNewTokens = 32,
                         Temperature = 0.0f,   // deterministic per cell so the diff is stable
                         TopP = 1.0f, TopK = 0,
@@ -211,19 +269,23 @@ public sealed partial class AblationSweepViewModel : ObservableObject
                     }
                     cell.TransactionId = txid;
 
-                    // Diff the just-completed ablated capture against the
-                    // baseline and take the peak sigma shift as the cell's
-                    // heatmap value. Sync-run inside a Task to avoid
-                    // blocking the UI thread on file I/O.
+                    // For column 0 (baseline prompt) we diff against the
+                    // original baseline. For extra-prompt columns the
+                    // baseline is the same *prompt* run without ablation,
+                    // so we look up (or reuse) the matching row.
+                    var refBaseline = cell.PromptIndex == 0
+                        ? baseline
+                        : FindOrThrowBaselineForPrompt(cell.Prompt);
                     var peak = await Task.Run(() =>
                     {
-                        using var A = new EventStore(baseline.TransactionId, _project.CapturesDir);
+                        using var A = new EventStore(refBaseline.TransactionId, _project.CapturesDir);
                         using var B = new EventStore(txid, _project.CapturesDir);
                         var rows = new HeadDiffAnalyzer(A, B).Rank(SigmaThreshold);
                         return rows.Count > 0 ? rows[0].SigmaShift : 0.0;
                     });
                     cell.SigmaShift = peak;
                     cell.State = "done";
+                    PersistCellResult(BaselineTransactionId, L0, L1, H0, H1, prompts, cell);
                 }
                 catch (OperationCanceledException) { cell.State = "queued"; throw; }
                 catch (Exception ex)
@@ -232,7 +294,7 @@ public sealed partial class AblationSweepViewModel : ObservableObject
                     cell.Error = ex.Message;
                 }
                 CellsDone++;
-                Status = $"{CellsDone}/{CellsTotal} — L{cell.Layer} H{cell.Head} → σ={cell.SigmaShift:F3}";
+                Status = $"{CellsDone}/{CellsTotal} — p{cell.PromptIndex} L{cell.Layer} H{cell.Head} → σ={cell.SigmaShift:F3}";
                 cell.RaiseFillChanged();
             }
             Status = _cts.IsCancellationRequested
@@ -250,5 +312,128 @@ public sealed partial class AblationSweepViewModel : ObservableObject
         if (!IsRunning) { Status = "Not running."; return; }
         _cts?.Cancel();
         Status = "Cancel requested…";
+    }
+
+    /// <summary>
+    /// Auto-pin the (baseline ⇆ this-cell's ablated txn) pair into
+    /// the persistent Pin Board. Called from the sweep heatmap when
+    /// the user clicks a completed cell. Refuses to pin cells that
+    /// aren't done (nothing meaningful to compare yet).
+    /// </summary>
+    [RelayCommand]
+    public void PinCell(AblationSweepCell? cell)
+    {
+        if (cell is null) { Status = "No cell to pin."; return; }
+        if (cell.State != "done" || string.IsNullOrEmpty(cell.TransactionId))
+        {
+            Status = $"Cell L{cell.Layer} H{cell.Head} is not done — nothing to pin.";
+            return;
+        }
+        var baseline = cell.PromptIndex == 0
+            ? BaselineTransactionId
+            : TryFindBaselineForPrompt(cell.Prompt)?.TransactionId ?? BaselineTransactionId;
+        try
+        {
+            using var store = new PinnedDiffStore(_project.PinnedDiffsDbPath);
+            store.Add(new PinnedDiff(
+                Id: 0,
+                LeftTransactionId:  baseline,
+                RightTransactionId: cell.TransactionId,
+                SigmaThreshold: SigmaThreshold,
+                CreatedAtNs: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1_000_000L,
+                Note: $"sweep p{cell.PromptIndex} L{cell.Layer} H{cell.Head} σ={cell.SigmaShift:F3}",
+                Tags: "sweep,ablation"));
+        }
+        catch (Exception ex) { Status = "Pin failed: " + ex.Message; return; }
+        _pinBoardVm.Refresh();
+        Status = $"Pinned L{cell.Layer} H{cell.Head} (σ={cell.SigmaShift:F3}) → Pin Board.";
+    }
+
+    // ---- Cross-prompt baseline resolution ------------------------------
+    // For column 0 the sweep's own BaselineTransactionId is the diff
+    // reference. For columns >0 we need a non-ablated capture of that
+    // extra prompt. We look one up in the project so cross-prompt
+    // attribution numbers stay honest — refusing to synthesise a diff
+    // when no baseline exists.
+
+    private TransactionMetadata? TryFindBaselineForPrompt(string prompt)
+        => _project.ListTransactions().FirstOrDefault(t =>
+            t.Completed && !t.WasAblated &&
+            string.Equals(t.Prompt, prompt, StringComparison.Ordinal));
+
+    private TransactionMetadata FindOrThrowBaselineForPrompt(string prompt)
+        => TryFindBaselineForPrompt(prompt)
+           ?? throw new InvalidOperationException(
+               $"Cross-prompt column needs a non-ablated capture of prompt \"{prompt}\" — none found. "
+             + "Run that prompt once without ablation before sweeping.");
+
+    // ---- Resume state persistence -------------------------------------
+    // Keyed by (baseline txn id + range + prompt index). Stored as a
+    // JSON sidecar next to the project's pinned_diffs.sqlite so it
+    // survives crashes and app restarts. Deliberately not in the same
+    // sqlite: sweep results are transient by nature, we don't want them
+    // clogging the durable pin store.
+
+    private string ResumeFilePath(string baseline, int L0, int L1, int H0, int H1)
+        => Path.Combine(_project.RootDir,
+            $"sweep-resume-{baseline}-L{L0}_{L1}-H{H0}_{H1}.json");
+
+    private static string ResumeKey(int promptIndex, int layer, int head)
+        => $"{promptIndex}:{layer}:{head}";
+
+    private Dictionary<string, (string txid, double sigma)> LoadResumeState(
+        string baseline, int L0, int L1, int H0, int H1, IReadOnlyList<string> prompts)
+    {
+        var map = new Dictionary<string, (string, double)>(StringComparer.Ordinal);
+        var path = ResumeFilePath(baseline, L0, L1, H0, H1);
+        if (!File.Exists(path)) return map;
+        try
+        {
+            var raw = File.ReadAllText(path);
+            var rows = JsonSerializer.Deserialize<List<ResumeRow>>(raw) ?? new();
+            var promptIdx = prompts
+                .Select((p, i) => (p, i))
+                .ToDictionary(x => x.p, x => x.i, StringComparer.Ordinal);
+            foreach (var r in rows)
+            {
+                if (!promptIdx.TryGetValue(r.Prompt ?? "", out var pi)) continue;
+                map[ResumeKey(pi, r.Layer, r.Head)] = (r.TxId ?? "", r.Sigma);
+            }
+        }
+        catch { /* corrupt file → start fresh */ }
+        return map;
+    }
+
+    private void PersistCellResult(string baseline, int L0, int L1, int H0, int H1,
+                                    IReadOnlyList<string> prompts, AblationSweepCell cell)
+    {
+        var path = ResumeFilePath(baseline, L0, L1, H0, H1);
+        var rows = new List<ResumeRow>();
+        try
+        {
+            if (File.Exists(path))
+                rows = JsonSerializer.Deserialize<List<ResumeRow>>(File.ReadAllText(path)) ?? new();
+        }
+        catch { rows = new(); }
+        // Upsert this cell — key on (prompt, layer, head).
+        rows.RemoveAll(r =>
+            string.Equals(r.Prompt, cell.Prompt, StringComparison.Ordinal) &&
+            r.Layer == cell.Layer && r.Head == cell.Head);
+        rows.Add(new ResumeRow
+        {
+            Prompt = cell.Prompt, Layer = cell.Layer, Head = cell.Head,
+            TxId = cell.TransactionId, Sigma = cell.SigmaShift,
+        });
+        try { File.WriteAllText(path, JsonSerializer.Serialize(rows)); }
+        catch { /* best-effort resume; never let a write failure kill the sweep */ }
+    }
+
+    private sealed class ResumeRow
+    {
+        public string? Prompt { get; set; }
+        public int    Layer  { get; set; }
+        public int    Head   { get; set; }
+        public string? TxId  { get; set; }
+        public double Sigma  { get; set; }
     }
 }

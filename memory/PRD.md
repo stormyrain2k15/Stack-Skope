@@ -236,6 +236,46 @@ xUnit `IsAblationRange` + range meta roundtrip coverage in
 All 62 Python tests pass. C# code changes are static-analysis verified
 (cannot compile WPF in the Linux container).
 
+## Feb 2026 — Sweep-follow-up wave (final of this session)
+
+**Sweep Cell Click → Auto-Pin**: Each completed heatmap cell is now a
+`MouseBinding LeftClick` on the sweep's `PinCellCommand`. Refuses to
+pin queued/running/failed cells (status message instead of silent
+no-op). Adds a `sweep,ablation` tag + descriptive note
+(`sweep p0 L5 H3 σ=1.42`) so pins from sweeps are visually distinct
+in the Pin Board. `AblationSweepViewModel` gained a
+`PinnedDiffsViewModel` constructor dep for the direct handoff.
+
+**Sweep Progress Persistence**: Each cell completion writes to
+`sweep-resume-{baseline}-L{L0}_{L1}-H{H0}_{H1}.json` at the project
+root. On the next `Run sweep` (with `Resume` checked, the default),
+the VM loads the JSON, seeds matching cells with `State = "done"` +
+their cached txn/sigma, and skips them in the run loop. Partial
+sweeps survive cancels, crashes, and app restarts.
+
+**Cross-Prompt Attribution**: `AblationSweepViewModel.ExtraPromptsText`
+takes one prompt per line. Column 0 is always the baseline's own
+prompt; each additional non-empty line runs the same range against
+that prompt using the baseline's model handle. Column 0 diffs against
+the sweep's baseline; extra columns diff against a matching
+non-ablated capture of that prompt (throws early with a clear error
+if none exists — no fake attribution numbers). Heatmap `PromptCount`
+drives the column axis so the grid reshapes automatically.
+
+**Ablation Preset Library**: `AblationPreset` record +
+`AblationPresetStore` (upsert-by-name; rejects blank names). New
+`AblationPresetsViewModel` with SaveCurrent / LoadSelected /
+DeleteSelected / Refresh. `AblationPresetsView` docks alongside Sweep.
+LoadSelected seeds *both* AblationVm (capture path) and SweepVm (sweep
+path) so one click reproduces a full study. Menu + Ctrl+Alt+L hotkey
+wired. Five xUnit tests in `AblationPresetStoreTests.cs`
+(roundtrip, upsert-replace, blank-name rejection, delete, reopen
+persistence).
+
+All 62 Python tests pass. C# additions (Ablation preset store,
+progress-resume file I/O, cross-prompt outer loop, cell-click auto-pin)
+are static-analysis verified — Windows CI will compile-verify.
+
 
 ## Deferred honestly absent
 - Code-signing (no cert issued).

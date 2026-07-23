@@ -49,6 +49,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public NaturalQueryViewModel        NaturalQueryVm   { get; }
     public PinnedDiffsViewModel         PinBoardVm       { get; }
     public AblationSweepViewModel       SweepVm          { get; }
+    public AblationPresetsViewModel     PresetsVm        { get; }
 
     [ObservableProperty] private string inspectorEventId = "—";
     [ObservableProperty] private string inspectorKind    = "—";
@@ -108,7 +109,8 @@ public sealed partial class ShellViewModel : ObservableObject
         NotesVm          = new AnnotationsViewModel(project);
         NaturalQueryVm   = new NaturalQueryViewModel();
         PinBoardVm       = new PinnedDiffsViewModel(project, CompareVm);
-        SweepVm          = new AblationSweepViewModel(project);
+        SweepVm          = new AblationSweepViewModel(project, PinBoardVm);
+        PresetsVm        = new AblationPresetsViewModel(project, AblationVm, SweepVm);
 
         DetectDevicesCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(DetectDevicesAsync);
         JumpToCaptureCeilingCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(JumpToCaptureCeiling);
