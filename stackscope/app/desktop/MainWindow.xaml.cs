@@ -296,6 +296,21 @@ public partial class MainWindow : Window
         StatusText.Text = _shell.PinBoardVm.Status;
     }
 
+    /// <summary>
+    /// Ctrl+Alt+Z — pop one snapshot from the AblationViewModel undo
+    /// stack. Reports the outcome in the status bar so the user always
+    /// knows whether an undo happened or the stack was empty.
+    /// </summary>
+    private void OnAblationUndo(object sender, ExecutedRoutedEventArgs e)
+    {
+        bool ok = _shell.AblationVm.Undo();
+        StatusText.Text = ok
+            ? $"Ablation undo: L{_shell.AblationVm.AblateLayer} H{_shell.AblationVm.AblateHead} "
+              + $"[{_shell.AblationVm.AblateLayerEnd},{_shell.AblationVm.AblateHeadEnd}] "
+              + $"σ={_shell.AblationVm.AutoCompareSigma:F2}."
+            : "Nothing to undo on the ablation controls.";
+    }
+
     private void OnFocusPane(object sender, ExecutedRoutedEventArgs e)
     {
         if (e.Parameter is not string contentId) return;

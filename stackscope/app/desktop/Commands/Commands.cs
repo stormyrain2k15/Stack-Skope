@@ -54,6 +54,8 @@ public static class Commands
     public static readonly RoutedUICommand PinCurrentDiff    = New("Diff: Pin Current",          "PinCurrentDiff",    Key.P, ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift);
     public static readonly RoutedUICommand AblationSweep     = New("Analysis: Ablation Sweep",   "AblationSweep",     Key.S, ModifierKeys.Control | ModifierKeys.Alt);
     public static readonly RoutedUICommand AblationPresets   = New("Analysis: Ablation Presets", "AblationPresets",   Key.L, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand AblationUndo      = New("Analysis: Ablation Undo",    "AblationUndo",      Key.Z, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand SweepCompare      = New("Analysis: Sweep Compare",    "SweepCompare",      Key.C, ModifierKeys.Control | ModifierKeys.Alt);
 
     private static RoutedUICommand New(string text, string name, Key key,
                                        ModifierKeys mods = ModifierKeys.None)
@@ -74,6 +76,7 @@ public static class Commands
         InspectHooks, BundleWorkbench, LiveTail, MCPServer, AttachSession,
         ReproDiff, BugReport,
         HealthDashboard, QuantizationDiff, DeterminismAudit, AttributionGraph,
-        Annotations, DebugToken, NaturalQuery, PinBoard, PinCurrentDiff, AblationSweep, AblationPresets,
+        Annotations, DebugToken, NaturalQuery, PinBoard, PinCurrentDiff,
+        AblationSweep, AblationPresets, AblationUndo, SweepCompare,
     };
 }

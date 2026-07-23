@@ -24,6 +24,14 @@
       <Button    Content="Delete"       Command="{Binding DeleteSelectedCommand}"
                  Padding="12,4" Margin="8,0"
                  AutomationProperties.Name="Delete selected preset"/>
+      <Button    Content="Export"       Command="{Binding ExportSelectedCommand}"
+                 Padding="12,4"
+                 ToolTip="Export selected preset to a portable .stackscope-preset.json file."
+                 AutomationProperties.Name="Export selected preset"/>
+      <Button    Content="Import"       Command="{Binding ImportFromFileCommand}"
+                 Padding="12,4" Margin="8,0"
+                 ToolTip="Import a .stackscope-preset.json file. Existing presets with the same name are updated."
+                 AutomationProperties.Name="Import preset from file"/>
       <Button    Content="Refresh"      Command="{Binding RefreshCommand}"
                  Padding="12,4"
                  AutomationProperties.Name="Refresh preset list"/>

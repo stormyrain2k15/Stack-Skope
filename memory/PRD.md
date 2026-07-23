@@ -272,9 +272,44 @@ wired. Five xUnit tests in `AblationPresetStoreTests.cs`
 (roundtrip, upsert-replace, blank-name rejection, delete, reopen
 persistence).
 
-All 62 Python tests pass. C# additions (Ablation preset store,
-progress-resume file I/O, cross-prompt outer loop, cell-click auto-pin)
-are static-analysis verified — Windows CI will compile-verify.
+## Feb 2026 — Final polish wave
+
+**Preset Sharing Export/Import**: `ExportedAblationPreset` DTO lives
+in `core/Models/` (portable, no WPF deps). `AblationPresetsViewModel`
+gained `ExportSelected` + `ImportFromFile` commands using
+`SaveFileDialog`/`OpenFileDialog`. Schema is versioned; the importer
+refuses `SchemaVersion` mismatches and blank names with a clear
+message rather than silently misinterpreting. `.stackscope-preset.json`
+files are the shareable unit — one file per study. Three xUnit tests
+in `ExportedPresetSchemaTests.cs` pin the wire shape (roundtrip,
+schema-version field name, default-value tolerance).
+
+**Sweep Compare Panel**: New `SweepCompareViewModel` +
+`SweepCompareView` load any two `sweep-resume-*.json` files from the
+project and overlay them as a delta heatmap (red = right sweep had
+bigger σ; blue = left; magnitude proportional to |Δ|). Auto-discovers
+available sweeps from the project root; peak |Δ| shown in the status
+bar. Docked pane + menu entry + `Ctrl+Alt+C` hotkey. Answers "is this
+head model-universal or model-specific?" in one click.
+
+**Ablation Undo**: `AblationViewModel` grew a bounded (depth-32)
+`Stack<AblationSnapshot>` ring buffer. Every observed field change
+(`OnAblate*Changing`, `OnAutoCompare*Changing`) pushes a snapshot;
+`Undo()` pops and restores under a `_suspendUndo` guard so restoration
+doesn't re-push. Menu + `Ctrl+Alt+Z` hotkey routed to
+`MainWindow.OnAblationUndo`; status bar reports the outcome so users
+know whether the stack was empty. Load-preset spam can't grow the
+heap forever.
+
+**Sweep Speedup**: The sweep loop no longer does a full
+`ListTransactions()` disk scan and re-opens the baseline EventStore on
+every cell — both are now memoised per prompt column at the start of
+the sweep. For an N-cell × M-prompt run this drops from
+`O(N × M × ListTransactions + N × M × open baseline store)` to
+`O(M × ListTransactions + M × open baseline store) + O(N × M × open
+ablated store)`. Baseline stores are disposed at the end of the sweep.
+Sweep speedup delivered without a proto change; deeper batch-of-prompts
+via a new gRPC RPC remains as a future proto+worker feature.
 
 
 ## Deferred honestly absent

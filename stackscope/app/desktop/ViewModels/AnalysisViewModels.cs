@@ -109,5 +109,65 @@ public sealed partial class AblationViewModel : ObservableObject
         + "≥ their starts to zero a rectangular range in one capture, or leave -1 for a single cell. "
         + "When the ablated capture finishes, StackScope automatically opens Diff Mode against the "
         + "newest non-ablated run of the same prompt so you see the head's contribution in one click. "
-        + "For a per-cell contribution heatmap, use the Sweep view. -1/-1 means no ablation.";
+        + "For a per-cell contribution heatmap, use the Sweep view. -1/-1 means no ablation. "
+        + "Ctrl+Z undoes the last change to these fields.";
+
+    // ---- Undo ring buffer -------------------------------------------
+    // Every observed field change snapshots the previous state. Ctrl+Z
+    // (bound at the window level via the AblationUndo routed command)
+    // pops the newest snapshot. Cap the depth so accidental Load
+    // Preset spam can't grow the heap forever.
+
+    private readonly Stack<AblationSnapshot> _undo = new();
+    private bool _suspendUndo;
+    private const int UndoDepth = 32;
+
+    private void PushUndo()
+    {
+        if (_suspendUndo) return;
+        _undo.Push(new AblationSnapshot(
+            AblateLayer, AblateHead, AblateLayerEnd, AblateHeadEnd,
+            AutoCompareAblatedOnLeft, AutoCompareSigma));
+        while (_undo.Count > UndoDepth)
+        {
+            // Trim from the bottom by re-creating the stack — Stack has
+            // no clean "drop oldest" so we take the hit here rather
+            // than during undo (which is user-visible).
+            var arr = _undo.ToArray();
+            _undo.Clear();
+            for (int i = 0; i < UndoDepth; i++) _undo.Push(arr[i]);
+            break;
+        }
+    }
+
+    /// <summary>Pop the most recent snapshot and restore its values.
+    /// No-op with a friendly status if the stack is empty.</summary>
+    public bool Undo()
+    {
+        if (_undo.Count == 0) { Status = "Nothing to undo."; return false; }
+        var snap = _undo.Pop();
+        _suspendUndo = true;
+        try
+        {
+            AblateLayer    = snap.Layer;
+            AblateHead     = snap.Head;
+            AblateLayerEnd = snap.LayerEnd;
+            AblateHeadEnd  = snap.HeadEnd;
+            AutoCompareAblatedOnLeft = snap.AblatedOnLeft;
+            AutoCompareSigma = snap.Sigma;
+        }
+        finally { _suspendUndo = false; }
+        return true;
+    }
+
+    partial void OnAblateLayerChanging(int value)              => PushUndo();
+    partial void OnAblateHeadChanging(int value)               => PushUndo();
+    partial void OnAblateLayerEndChanging(int value)           => PushUndo();
+    partial void OnAblateHeadEndChanging(int value)            => PushUndo();
+    partial void OnAutoCompareAblatedOnLeftChanging(bool v)    => PushUndo();
+    partial void OnAutoCompareSigmaChanging(double v)          => PushUndo();
+
+    private readonly record struct AblationSnapshot(
+        int Layer, int Head, int LayerEnd, int HeadEnd,
+        bool AblatedOnLeft, double Sigma);
 }

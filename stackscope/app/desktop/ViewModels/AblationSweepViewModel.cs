@@ -232,6 +232,25 @@ public sealed partial class AblationSweepViewModel : ObservableObject
                 IsRunning = false; return;
             }
 
+            // Speedup: pre-resolve the per-prompt baseline metadata *once*
+            // and open the baseline EventStore *once per prompt column*
+            // instead of doing a full ListTransactions() disk scan and
+            // reopening the store on every cell. Column 0 uses the
+            // sweep's own baseline; extras must exist as non-ablated
+            // captures of that prompt (thrown early if missing).
+            var perPromptBaseline = new Dictionary<string, TransactionMetadata>(StringComparer.Ordinal);
+            var perPromptStores   = new Dictionary<string, EventStore>(StringComparer.Ordinal);
+            perPromptBaseline[baseline.Prompt ?? ""] = baseline;
+            perPromptStores[baseline.Prompt ?? ""]   =
+                new EventStore(baseline.TransactionId, _project.CapturesDir);
+            for (int pi = 1; pi < prompts.Count; pi++)
+            {
+                var pmatch = FindOrThrowBaselineForPrompt(prompts[pi]);
+                perPromptBaseline[prompts[pi]] = pmatch;
+                perPromptStores[prompts[pi]]   =
+                    new EventStore(pmatch.TransactionId, _project.CapturesDir);
+            }
+
             foreach (var cell in Cells)
             {
                 if (_cts.IsCancellationRequested) break;
@@ -269,16 +288,12 @@ public sealed partial class AblationSweepViewModel : ObservableObject
                     }
                     cell.TransactionId = txid;
 
-                    // For column 0 (baseline prompt) we diff against the
-                    // original baseline. For extra-prompt columns the
-                    // baseline is the same *prompt* run without ablation,
-                    // so we look up (or reuse) the matching row.
-                    var refBaseline = cell.PromptIndex == 0
-                        ? baseline
-                        : FindOrThrowBaselineForPrompt(cell.Prompt);
+                    // Reuse the pre-opened baseline EventStore for this
+                    // prompt column instead of re-opening on every cell.
+                    // The ablated store is per-cell so it stays scoped.
+                    var A = perPromptStores[cell.Prompt];
                     var peak = await Task.Run(() =>
                     {
-                        using var A = new EventStore(refBaseline.TransactionId, _project.CapturesDir);
                         using var B = new EventStore(txid, _project.CapturesDir);
                         var rows = new HeadDiffAnalyzer(A, B).Rank(SigmaThreshold);
                         return rows.Count > 0 ? rows[0].SigmaShift : 0.0;
@@ -300,6 +315,10 @@ public sealed partial class AblationSweepViewModel : ObservableObject
             Status = _cts.IsCancellationRequested
                 ? $"Sweep cancelled after {CellsDone}/{CellsTotal} cells."
                 : $"Sweep complete: {CellsDone}/{CellsTotal} cells. Top σ = {Cells.Max(c => c.SigmaShift):F3}.";
+
+            // Release the per-prompt baseline EventStore handles now
+            // that no more diffs will run against them.
+            foreach (var s in perPromptStores.Values) s.Dispose();
         }
         catch (OperationCanceledException) { Status = "Sweep cancelled."; }
         catch (Exception ex) { Status = "Sweep failed: " + ex.Message; }

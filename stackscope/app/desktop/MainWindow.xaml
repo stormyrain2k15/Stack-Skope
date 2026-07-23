@@ -53,6 +53,8 @@
         <KeyBinding Command="{x:Static cmd:Commands.PinCurrentDiff}"     Key="P" Modifiers="Control+Alt+Shift"/>
         <KeyBinding Command="{x:Static cmd:Commands.AblationSweep}"      Key="S" Modifiers="Control+Alt"/>
         <KeyBinding Command="{x:Static cmd:Commands.AblationPresets}"    Key="L" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.AblationUndo}"       Key="Z" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.SweepCompare}"       Key="C" Modifiers="Control+Alt"/>
     </Window.InputBindings>
 
     <Window.CommandBindings>
@@ -97,6 +99,8 @@
         <CommandBinding Command="{x:Static cmd:Commands.PinCurrentDiff}"     Executed="OnPinCurrentDiff"/>
         <CommandBinding Command="{x:Static cmd:Commands.AblationSweep}"      Executed="OnFocusPane" CommandParameter="sweep"/>
         <CommandBinding Command="{x:Static cmd:Commands.AblationPresets}"    Executed="OnFocusPane" CommandParameter="presets"/>
+        <CommandBinding Command="{x:Static cmd:Commands.AblationUndo}"       Executed="OnAblationUndo"/>
+        <CommandBinding Command="{x:Static cmd:Commands.SweepCompare}"       Executed="OnFocusPane" CommandParameter="sweepcompare"/>
         <CommandBinding Command="{x:Static cmd:Commands.DebugToken}"         Executed="OnDebugToken"/>
     </Window.CommandBindings>
 
@@ -161,6 +165,8 @@
                 <MenuItem Header="_Pin Current Diff"  Command="{x:Static cmd:Commands.PinCurrentDiff}"  InputGestureText="Ctrl+Alt+Shift+P"/>
                 <MenuItem Header="Ablation _Sweep"    Command="{x:Static cmd:Commands.AblationSweep}"   InputGestureText="Ctrl+Alt+S"/>
                 <MenuItem Header="Ablation Preset _Library" Command="{x:Static cmd:Commands.AblationPresets}" InputGestureText="Ctrl+Alt+L"/>
+                <MenuItem Header="_Undo Ablation Change"    Command="{x:Static cmd:Commands.AblationUndo}"    InputGestureText="Ctrl+Alt+Z"/>
+                <MenuItem Header="Sweep _Compare"           Command="{x:Static cmd:Commands.SweepCompare}"    InputGestureText="Ctrl+Alt+C"/>
                 <Separator/>
                 <MenuItem Header="Debug this _token"  Command="{x:Static cmd:Commands.DebugToken}"       InputGestureText="F4"/>
             </MenuItem>
@@ -368,6 +374,9 @@
                         </avalonDock:LayoutDocument>
                         <avalonDock:LayoutDocument Title="Ablation Presets" ContentId="presets">
                             <v:AblationPresetsView DataContext="{Binding PresetsVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Sweep Compare" ContentId="sweepcompare">
+                            <v:SweepCompareView DataContext="{Binding SweepCompareVm}"/>
                         </avalonDock:LayoutDocument>
                     </avalonDock:LayoutDocumentPane>
 
