@@ -72,6 +72,12 @@ message LoadModelReply {
   int32  n_heads      = 4;
   int32  hidden_size  = 5;
   int32  vocab_size   = 6;
+  // Which accelerator llama.cpp / the Python worker actually landed the
+  // weights on. Matches an id from CapabilitiesReply.device_info.id
+  // (e.g. "cuda:0", "hip:1", "vulkan:0", "cpu"). The WPF UI badges the
+  // device dropdown with this value so the user knows which capture
+  // backend to attach.
+  string resolved_device = 7;
 }
 
 message UnloadModelRequest { string model_handle = 1; }

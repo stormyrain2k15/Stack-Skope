@@ -27,6 +27,7 @@
 #include <stdatomic.h>
 
 #include "llama.h"
+#include "ggml-backend.h"
 
 /* -------- Timekeeping -------------------------------------------------- */
 int64_t ss_now_ns(void) {
@@ -55,7 +56,102 @@ struct ss_worker {
     int32_t               hidden_size;
     int32_t               vocab_size;
     char                  arch[32];
+    char                  resolved_device[32];
 };
+
+/* ---- Device enumeration -------------------------------------------------
+ *
+ * Uses ggml's backend registry (introduced in llama.cpp mid-2024) as the
+ * source of truth for what backends are compiled in and what devices each
+ * one exposes. Falls back to a CPU-only report if the registry is not
+ * available (older llama.cpp checkout).
+ */
+static void ll_backend_kind(const char* backend_name, char* out, size_t cap) {
+    /* Normalise ggml backend names to StackScope's stable kind strings. */
+    const char* k = "cpu";
+    if (backend_name) {
+        if      (strstr(backend_name, "CUDA"))   k = "cuda";
+        else if (strstr(backend_name, "HIP"))    k = "hip";
+        else if (strstr(backend_name, "ROCm"))   k = "hip";
+        else if (strstr(backend_name, "Vulkan")) k = "vulkan";
+        else if (strstr(backend_name, "Metal"))  k = "metal";
+        else if (strstr(backend_name, "SYCL"))   k = "sycl";
+        else if (strstr(backend_name, "CANN"))   k = "cann";
+        else if (strstr(backend_name, "OpenCL")) k = "opencl";
+    }
+    strncpy(out, k, cap - 1); out[cap - 1] = 0;
+}
+
+int32_t ss_enumerate_devices(ss_device_info_t* out, int32_t max) {
+    if (!out || max <= 0) return 0;
+    int32_t n = 0;
+    int32_t default_idx = -1;
+
+    /* GGML backend device registry. See ggml-backend.h in llama.cpp. */
+    size_t total = ggml_backend_dev_count();
+    for (size_t i = 0; i < total && n < max; ++i) {
+        ggml_backend_dev_t dev = ggml_backend_dev_get(i);
+        if (!dev) continue;
+        enum ggml_backend_dev_type dt = ggml_backend_dev_type(dev);
+        if (dt == GGML_BACKEND_DEVICE_TYPE_CPU) continue; /* emit CPU once at end */
+
+        ss_device_info_t* d = &out[n];
+        memset(d, 0, sizeof(*d));
+
+        const char* name = ggml_backend_dev_description(dev);
+        if (name) strncpy(d->name, name, sizeof(d->name) - 1);
+
+        ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+        const char* backend_name = reg ? ggml_backend_reg_name(reg) : "";
+        ll_backend_kind(backend_name, d->kind, sizeof(d->kind));
+
+        /* Per-kind index within its family, so we produce cuda:0, cuda:1, hip:0, … */
+        int fam = 0;
+        for (int32_t j = 0; j < n; ++j) if (strcmp(out[j].kind, d->kind) == 0) fam++;
+        snprintf(d->id, sizeof(d->id), "%s:%d", d->kind, fam);
+
+        size_t free_b = 0, total_b = 0;
+        ggml_backend_dev_memory(dev, &free_b, &total_b);
+        d->total_memory_bytes = (uint64_t)total_b;
+        d->free_memory_bytes  = (uint64_t)free_b;
+
+        struct ggml_backend_dev_props props;
+        ggml_backend_dev_get_props(dev, &props);
+        d->is_integrated = props.caps.host_buffer ? 1 : 0;
+
+        if (default_idx < 0) default_idx = n;
+        n++;
+    }
+
+    /* CPU always last. */
+    if (n < max) {
+        ss_device_info_t* c = &out[n];
+        memset(c, 0, sizeof(*c));
+        strncpy(c->id,   "cpu", sizeof(c->id) - 1);
+        strncpy(c->kind, "cpu", sizeof(c->kind) - 1);
+        strncpy(c->name, "CPU (llama.cpp)", sizeof(c->name) - 1);
+        if (default_idx < 0) default_idx = n;
+        n++;
+    }
+    if (default_idx >= 0 && default_idx < n) out[default_idx].is_default = 1;
+    return n;
+}
+
+/* Which device did llama.cpp actually land the KV/weights on? Reads the
+ * first non-CPU device out of the enumeration if any layers were offloaded,
+ * otherwise reports "cpu". Cached at load time so callers don't re-scan. */
+static void probe_resolved_device(struct llama_model* model, char out[32]) {
+    strncpy(out, "cpu", 31); out[31] = 0;
+    if (!model) return;
+    ss_device_info_t buf[16];
+    int32_t n = ss_enumerate_devices(buf, 16);
+    for (int i = 0; i < n; i++) {
+        if (strcmp(buf[i].kind, "cpu") != 0) {
+            strncpy(out, buf[i].id, 31); out[31] = 0;
+            return;
+        }
+    }
+}
 
 ss_worker_t* ss_worker_create(const char* gguf_path, int32_t n_ctx,
                               const char* device_hint) {
@@ -94,6 +190,7 @@ ss_worker_t* ss_worker_create(const char* gguf_path, int32_t n_ctx,
     } else {
         strncpy(w->arch, "unknown", sizeof(w->arch) - 1);
     }
+    probe_resolved_device(model, w->resolved_device);
 
     /* Default sampler chain: temperature + top-k + top-p + dist. Real
      * values are set per-run in ss_worker_run(). */
@@ -124,6 +221,13 @@ void ss_worker_model_info(const ss_worker_t* w,
     if (hidden_size) *hidden_size = w->hidden_size;
     if (vocab_size)  *vocab_size  = w->vocab_size;
 }
+
+void ss_worker_resolved_device(const ss_worker_t* w, char device_out[32]) {
+    if (!w) { strncpy(device_out, "cpu", 31); device_out[31] = 0; return; }
+    strncpy(device_out, w->resolved_device, 31);
+    device_out[31] = 0;
+}
+
 
 /* -------- Event helpers ----------------------------------------------- */
 static void emit(ss_event_sink_fn sink, void* user,

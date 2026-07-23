@@ -20,6 +20,14 @@ public sealed partial class RunInferenceDialogViewModel : ObservableObject
 
     public string DeviceLabel =>
         WorkspaceState.Current.SelectedDevice ?? "cpu (no worker yet)";
+
+    /// <summary>
+    /// Set by <see cref="RunInferenceDialog.OnStart"/> after LoadModel
+    /// resolves — shows the *actual* device the model landed on, which
+    /// may differ from the request (llama.cpp falls back to CPU if a
+    /// backend isn't compiled in).
+    /// </summary>
+    [ObservableProperty] private string _resolvedDevice = "";
 }
 
 public partial class RunInferenceDialog : Window

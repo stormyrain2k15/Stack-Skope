@@ -49,7 +49,8 @@ public sealed class LlamaCppWorkerClient : IRuntimeAdapter
             NCtx      = args.NCtx
         }, cancellationToken: ct);
         return new LoadedModelInfo(reply.ModelHandle, reply.Architecture,
-            reply.NLayers, reply.NHeads, reply.HiddenSize, reply.VocabSize);
+            reply.NLayers, reply.NHeads, reply.HiddenSize, reply.VocabSize,
+            reply.ResolvedDevice ?? "");
     }
 
     public async Task UnloadModelAsync(string modelHandle, CancellationToken ct)

@@ -68,6 +68,36 @@ void ss_worker_model_info(const ss_worker_t* w,
                           int32_t* hidden_size,
                           int32_t* vocab_size);
 
+/* Which device did llama.cpp actually land on for this worker?
+ * Fills `device_out` with e.g. "cuda:0" / "hip:1" / "vulkan:0" / "cpu".
+ * Buffer must be at least 32 bytes. */
+void ss_worker_resolved_device(const ss_worker_t* w, char device_out[32]);
+
+/* ---- Device enumeration ------------------------------------------------
+ *
+ * llama.cpp compiles-in the backends it was configured with (any subset of
+ * CUDA / HIP / Vulkan / Metal / OpenCL / CPU). We surface every accelerator
+ * llama.cpp itself reports via the ggml backend registry, plus a coarse
+ * probe of the driver runtime for name + memory + compute capability.
+ * Static — safe to call before any model is loaded. */
+typedef struct {
+    char     id[32];               /* "cuda:0", "hip:0", "vulkan:0", "cpu" */
+    char     kind[16];              /* "cuda", "hip", "vulkan", "metal", "cpu" */
+    char     name[128];             /* "NVIDIA GeForce RTX 4090" */
+    uint64_t total_memory_bytes;
+    uint64_t free_memory_bytes;
+    char     compute_capability[16]; /* "8.9" for Ada; "gfx1100" for RDNA3 */
+    char     driver_version[32];
+    int32_t  multi_processor_count;
+    int32_t  is_integrated;         /* 0/1 */
+    int32_t  is_default;            /* 0/1 — one entry only */
+} ss_device_info_t;
+
+/* Fill `out` with up to `max` devices, return count actually written.
+ * On any backend probe failure, the corresponding entry is skipped rather
+ * than aborting the whole enumeration. CPU is always emitted last. */
+int32_t ss_enumerate_devices(ss_device_info_t* out, int32_t max);
+
 /* Run inference. Blocks until finished; every event goes through `sink`.
  * `sink` may be called from an internal worker thread — it must be
  * thread-safe. Returns 0 on success, negative on failure. */

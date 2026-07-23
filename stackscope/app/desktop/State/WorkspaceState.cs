@@ -24,6 +24,14 @@ public sealed partial class WorkspaceState : ObservableObject
     [ObservableProperty] private string? currentTransactionId;
     [ObservableProperty] private string? currentModelHandle;
     [ObservableProperty] private string? selectedDevice;
+    /// <summary>
+    /// The device the loaded model *actually* landed on, as reported by the
+    /// worker in <c>LoadModelReply.resolved_device</c>. Distinct from
+    /// <see cref="SelectedDevice"/> (which is the user's request) so the
+    /// UI can badge cases where llama.cpp fell back to CPU because the
+    /// requested backend wasn't compiled in.
+    /// </summary>
+    [ObservableProperty] private string? resolvedDevice;
     [ObservableProperty] private string? recoveryBanner;
 
     /// <summary>Bindable helpers used by view visibility triggers.</summary>

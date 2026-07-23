@@ -35,13 +35,29 @@ public:
         reply->set_worker_kind("llamacpp");
         reply->set_version("0.1.0");
         reply->add_supported_formats("gguf");
-        reply->add_devices("cpu");
-        reply->add_devices("cuda:0");
-        reply->add_devices("hip:0");
-        reply->add_devices("vulkan:0");
         reply->set_supports_attention(false);
         reply->set_supports_activations(false);
         reply->set_supports_tensor_readback(false);
+
+        // Real enumeration via ggml backend registry. Populates both the
+        // legacy `devices` string list AND the rich `device_info` list so
+        // the WPF dropdown renders "cuda:0 · NVIDIA RTX 4090 · 24 GB".
+        ss_device_info_t buf[32];
+        int32_t n = ss_enumerate_devices(buf, 32);
+        for (int32_t i = 0; i < n; ++i) {
+            reply->add_devices(buf[i].id);
+            auto* d = reply->add_device_info();
+            d->set_id(buf[i].id);
+            d->set_kind(buf[i].kind);
+            d->set_name(buf[i].name);
+            d->set_total_memory_bytes(buf[i].total_memory_bytes);
+            d->set_free_memory_bytes(buf[i].free_memory_bytes);
+            d->set_compute_capability(buf[i].compute_capability);
+            d->set_driver_version(buf[i].driver_version);
+            d->set_multi_processor_count(buf[i].multi_processor_count);
+            d->set_is_integrated(buf[i].is_integrated != 0);
+            d->set_is_default(buf[i].is_default != 0);
+        }
         return grpc::Status::OK;
     }
 
@@ -60,12 +76,15 @@ public:
         char arch[32] = {0};
         int32_t nL = 0, nH = 0, hs = 0, vs = 0;
         ss_worker_model_info(worker_, arch, &nL, &nH, &hs, &vs);
+        char resolved[32] = {0};
+        ss_worker_resolved_device(worker_, resolved);
         reply->set_model_handle("m-0");
         reply->set_architecture(arch);
         reply->set_n_layers(nL);
         reply->set_n_heads(nH);
         reply->set_hidden_size(hs);
         reply->set_vocab_size(vs);
+        reply->set_resolved_device(resolved);
         return grpc::Status::OK;
     }
 

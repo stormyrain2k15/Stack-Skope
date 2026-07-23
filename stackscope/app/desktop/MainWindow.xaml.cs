@@ -81,7 +81,7 @@ public partial class MainWindow : Window
         StatusText.Text = $"Opened {dlg.FolderName}";
     }
 
-    private void OnOpenModel(object sender, ExecutedRoutedEventArgs e)
+    private async void OnOpenModel(object sender, ExecutedRoutedEventArgs e)
     {
         var dlg = new OpenFileDialog
         {
@@ -91,6 +91,7 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() != true) return;
         try
         {
+            // 1) Local introspection populates the Overview pane without needing a worker.
             var d = new ModelIntrospectionService(new ArchitectureRegistry()).Introspect(dlg.FileName);
             var vm = _shell.OverviewVm;
             vm.ModelName    = d.DisplayName;
@@ -99,12 +100,48 @@ public partial class MainWindow : Window
             vm.NHeads       = d.Layers.NumHeads;
             vm.HiddenSize   = d.Layers.HiddenSize;
             vm.VocabSize    = d.Tokenizer?.VocabSize ?? 0;
-            WorkspaceState.Current.CurrentModelHandle = d.DisplayName;
-            StatusText.Text = $"Loaded {d.DisplayName} ({d.ArchitectureName})";
+            StatusText.Text = $"Introspected {d.DisplayName} ({d.ArchitectureName}) — loading on worker…";
+
+            // 2) Coordinator.LoadModel — actually load the weights on the
+            //    selected device. Reply carries resolved_device (the
+            //    accelerator the worker actually landed on) which may
+            //    differ from the request (llama.cpp falls back to CPU
+            //    when the requested backend wasn't compiled in).
+            using var chan = Grpc.Net.Client.GrpcChannel.ForAddress(
+                Environment.GetEnvironmentVariable("STACKSCOPE_COORDINATOR_ENDPOINT")
+                    ?? "http://127.0.0.1:50600");
+            var coord = new StackScope.Proto.V1.Coordinator.CoordinatorClient(chan);
+            var workers = await coord.ListWorkersAsync(new StackScope.Proto.V1.ListWorkersRequest());
+            string workerId;
+            if (workers.Workers.Count == 0)
+            {
+                var kind = dlg.FileName.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
+                    ? "llamacpp" : "pytorch";
+                var started = await coord.StartWorkerAsync(new StackScope.Proto.V1.StartWorkerRequest
+                { Kind = kind });
+                workerId = started.Worker.WorkerId;
+            }
+            else workerId = workers.Workers[0].WorkerId;
+
+            var reply = await coord.LoadModelAsync(new StackScope.Proto.V1.CoordLoadModelRequest
+            {
+                WorkerId       = workerId,
+                ModelPath      = dlg.FileName,
+                Format         = dlg.FileName.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase) ? "gguf" : "safetensors",
+                Device         = WorkspaceState.Current.SelectedDevice ?? "",
+                TrustRemoteCode = false,
+                NCtx           = 4096,
+            });
+
+            WorkspaceState.Current.CurrentModelHandle = reply.ModelHandle;
+            WorkspaceState.Current.ResolvedDevice     = reply.ResolvedDevice;
+            StatusText.Text =
+                $"Loaded {reply.Architecture} on {reply.ResolvedDevice} — handle {reply.ModelHandle}";
         }
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message, "Open Model", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusText.Text = "Open Model failed: " + ex.Message;
         }
     }
 

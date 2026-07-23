@@ -70,6 +70,11 @@ message CoordLoadModelReply {
   int32  hidden_size   = 5;
   int32  vocab_size    = 6;
   string transaction_scope_id = 7;
+  // Forwarded from the worker: the accelerator llama.cpp / torch actually
+  // landed the weights on. The WPF status bar and RunInferenceDialog badge
+  // this so users see e.g. "cuda:0 · NVIDIA RTX 4090" (matched to the
+  // corresponding device_info entry from ListDevices).
+  string resolved_device = 8;
 }
 
 message CoordRunRequest {

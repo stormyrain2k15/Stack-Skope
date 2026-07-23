@@ -114,6 +114,7 @@ class InferenceWorkerServicer:
             n_heads=getattr(cfg, "num_attention_heads", getattr(cfg, "n_head", 0)),
             hidden_size=getattr(cfg, "hidden_size", getattr(cfg, "n_embd", 0)),
             vocab_size=getattr(cfg, "vocab_size", 0),
+            resolved_device=str(device),
         )
 
     def _resolve_device(self, requested: str) -> str:

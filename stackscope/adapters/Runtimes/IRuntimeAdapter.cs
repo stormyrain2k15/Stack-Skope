@@ -70,7 +70,8 @@ public sealed record LoadedModelInfo(
     int NLayers,
     int NHeads,
     int HiddenSize,
-    int VocabSize);
+    int VocabSize,
+    string ResolvedDevice);
 
 public sealed record RunInferenceArgs(
     string TransactionId,
