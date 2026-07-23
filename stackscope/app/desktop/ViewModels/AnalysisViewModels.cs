@@ -77,6 +77,15 @@ public sealed partial class AblationViewModel : ObservableObject
 {
     [ObservableProperty] private int ablateLayer = -1;
     [ObservableProperty] private int ablateHead  = -1;
+    /// <summary>
+    /// Inclusive end of the rectangular range to zero in one capture.
+    /// -1 means "single cell" (matches AblateLayer). ≥ AblateLayer
+    /// activates the range so every head in
+    /// [AblateLayer..AblateLayerEnd] × [AblateHead..AblateHeadEnd] is
+    /// zeroed together — one capture, multi-cell ablation.
+    /// </summary>
+    [ObservableProperty] private int ablateLayerEnd = -1;
+    [ObservableProperty] private int ablateHeadEnd  = -1;
 
     /// <summary>
     /// Side ordering for the auto-diff opened after an ablated capture.
@@ -96,9 +105,9 @@ public sealed partial class AblationViewModel : ObservableObject
     [ObservableProperty] private double autoCompareSigma = 1.0;
 
     [ObservableProperty] private string status =
-        "Set layer/head ≥ 0, then press F5 (Start Capture). The values here seed the "
-        + "capture dialog and are forwarded through RunInference so the worker zeroes that head "
-        + "before returning. When the ablated capture finishes, StackScope automatically opens "
-        + "Diff Mode against the newest non-ablated run of the same prompt so you see the head's "
-        + "contribution in one click. -1/-1 means no ablation.";
+        "Set layer/head ≥ 0, then press F5 (Start Capture). Set the *_end fields "
+        + "≥ their starts to zero a rectangular range in one capture, or leave -1 for a single cell. "
+        + "When the ablated capture finishes, StackScope automatically opens Diff Mode against the "
+        + "newest non-ablated run of the same prompt so you see the head's contribution in one click. "
+        + "For a per-cell contribution heatmap, use the Sweep view. -1/-1 means no ablation.";
 }

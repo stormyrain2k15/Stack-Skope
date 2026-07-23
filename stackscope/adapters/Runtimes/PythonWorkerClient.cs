@@ -81,8 +81,10 @@ public sealed class PythonWorkerClient : IRuntimeAdapter
             TopK          = args.TopK,
             Seed          = args.Seed,
             CaptureLevel  = (Proto.V1.CaptureLevel)args.Level,
-            AblateLayer   = args.AblateLayer,
-            AblateHead    = args.AblateHead
+            AblateLayer    = args.AblateLayer,
+            AblateHead     = args.AblateHead,
+            AblateLayerEnd = args.AblateLayerEnd,
+            AblateHeadEnd  = args.AblateHeadEnd
         }, cancellationToken: ct);
 
         await foreach (var pe in call.ResponseStream.ReadAllAsync(ct))

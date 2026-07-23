@@ -16,6 +16,8 @@ public sealed partial class RunInferenceDialogViewModel : ObservableObject
     [ObservableProperty] private ulong  _seed = 0;
     [ObservableProperty] private int    _ablateLayer = -1;
     [ObservableProperty] private int    _ablateHead  = -1;
+    [ObservableProperty] private int    _ablateLayerEnd = -1;
+    [ObservableProperty] private int    _ablateHeadEnd  = -1;
     [ObservableProperty] private string _status = "";
 
     public string DeviceLabel =>
@@ -46,10 +48,12 @@ public partial class RunInferenceDialog : Window
     /// dialog's own defaults (-1/-1) would win. Called by
     /// MainWindow.OnStartCapture before ShowDialog().
     /// </summary>
-    public void SeedAblation(int layer, int head)
+    public void SeedAblation(int layer, int head, int layerEnd = -1, int headEnd = -1)
     {
-        _vm.AblateLayer = layer;
-        _vm.AblateHead  = head;
+        _vm.AblateLayer    = layer;
+        _vm.AblateHead     = head;
+        _vm.AblateLayerEnd = layerEnd;
+        _vm.AblateHeadEnd  = headEnd;
     }
 
     private async void OnStart(object sender, RoutedEventArgs e)
@@ -86,8 +90,10 @@ public partial class RunInferenceDialog : Window
                 TopK = _vm.TopK,
                 Seed = _vm.Seed,
                 CaptureLevel = (CaptureLevel)(int)WorkspaceState.Current.Disclosure,
-                AblateLayer = _vm.AblateLayer,
-                AblateHead  = _vm.AblateHead,
+                AblateLayer    = _vm.AblateLayer,
+                AblateHead     = _vm.AblateHead,
+                AblateLayerEnd = _vm.AblateLayerEnd,
+                AblateHeadEnd  = _vm.AblateHeadEnd,
             }, cancellationToken: _cts.Token);
 
             await foreach (var progress in call.ResponseStream.ReadAllAsync(_cts.Token))

@@ -50,8 +50,10 @@ public sealed class CaptureService
         // for the WasAblated predicate). Empty prompt is stored as empty
         // string so the reader always finds the key.
         store.Index.SetMeta("prompt", args.Prompt ?? "");
-        store.Index.SetMeta("ablate_layer", args.AblateLayer.ToString());
-        store.Index.SetMeta("ablate_head",  args.AblateHead.ToString());
+        store.Index.SetMeta("ablate_layer",     args.AblateLayer.ToString());
+        store.Index.SetMeta("ablate_head",      args.AblateHead.ToString());
+        store.Index.SetMeta("ablate_layer_end", args.AblateLayerEnd.ToString());
+        store.Index.SetMeta("ablate_head_end",  args.AblateHeadEnd.ToString());
 
         var pipeline = new CapturePipeline(store);
         foreach (var b in driverBackends) pipeline.Register(b);

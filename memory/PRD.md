@@ -196,20 +196,45 @@ detail string into the transaction's SQLite index as
 `HasCaptureCeiling`. `WorkspaceState.CaptureCeiling` is refreshed both
 after Start Capture and when the user selects a different row in the
 Capture Library. A rust-coloured badge next to the resolved-device
-badge shows the message and full tooltip. Silent fallbacks are gone.
+badge shows the message and full tooltip. Clicking the badge invokes
+`ShellViewModel.JumpToCaptureCeilingCommand` which locates the first
+ceiling marker event in the current transaction, seeds
+`SelectionState` with its event id, and requests the Timeline pane —
+no more silent fallbacks and no dead-end badges.
 
 **Diff Pin Board** — Saved (baseline ⇆ candidate) diffs survive
 across sessions in a project-scoped `pinned_diffs.sqlite` file at
 `ProjectService.PinnedDiffsDbPath`. New `PinnedDiff` record +
 `PinnedDiffStore` (CRUD; rejects empty tx ids; newest-first list).
 New `PinnedDiffsViewModel` exposes Refresh / PinCurrent /
-OpenSelected / DeleteSelected / SaveSelectedNote commands. New
-`PinnedDiffsView` docks alongside the other panels. Compare view
-gets "Pin this diff" and "Open Pin Board" buttons. Two new commands
-(`PinBoard`, `PinCurrentDiff`) plus Ctrl+Alt+P / Ctrl+Alt+Shift+P
-hotkeys. Six new xUnit tests in `PinnedDiffStoreTests.cs`
-(roundtrip, ordering, empty-id rejection, delete, update-note,
-reopen-preserves-data).
+OpenSelected / DeleteSelected / SaveSelectedNote commands.
+`PinnedDiffRow` wraps each pin with a live health check against
+`ProjectService.ListTransactions` — dangling pins render in the
+accent-rust colour with a status icon and refuse to Open (status bar
+explains which side is missing). Compare view gets "Pin this diff"
+and "Open Pin Board" buttons. Six xUnit tests in
+`PinnedDiffStoreTests.cs`.
+
+**Ablation Range + Sweep (Feb 2026)** — Extended proto
+`RunInferenceRequest` / `CoordRunRequest` with
+`ablate_layer_end` / `ablate_head_end`. Python worker's forward-hook
+now iterates every (layer, head) inside
+`[layer..layer_end] × [head..head_end]` and zeros them in one capture.
+llama.cpp worker's `ablation_unsupported` marker reports the full
+range instead of a single cell. `RunInferenceArgs` +
+`TransactionMetadata` gained range fields (metadata roundtripped in
+SQLite index). `AblationViewModel` grew range inputs. `AblationSweep`
+is a new WPF workflow: `AblationSweepViewModel` drives the
+Coordinator directly, launches one single-cell ablated capture per
+(L, H) in a rectangular range against a chosen baseline, runs a
+`HeadDiffAnalyzer` diff, and lays out peak σ as a live heatmap
+(`AblationSweepView`). Cancel button interrupts the sweep mid-flight.
+Eight new pytest cases in `test_ablation_range.py` and additional
+xUnit `IsAblationRange` + range meta roundtrip coverage in
+`ProjectServiceAutoCompareTests.cs`.
+
+All 62 Python tests pass. C# code changes are static-analysis verified
+(cannot compile WPF in the Linux container).
 
 
 ## Deferred honestly absent

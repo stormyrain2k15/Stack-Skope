@@ -105,8 +105,15 @@ message RunInferenceRequest {
   // Optional attention ablation: when both are set, the top-level
   // attention module at `ablate_layer` has its output for head
   // `ablate_head` zeroed before returning. Use -1 for "no ablation".
+  //
+  // For rectangular range ablation, set ablate_layer_end and
+  // ablate_head_end ≥ their start counterparts — the worker will zero
+  // every head in the closed rectangle [layer, layer_end] × [head,
+  // head_end] within a single capture. -1 keeps single-cell semantics.
   int32 ablate_layer = 10;
   int32 ablate_head  = 11;
+  int32 ablate_layer_end = 12;
+  int32 ablate_head_end  = 13;
 }
 
 enum CaptureLevel {

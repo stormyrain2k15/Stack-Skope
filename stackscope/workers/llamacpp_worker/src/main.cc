@@ -187,11 +187,17 @@ public:
                 "delivered by this worker.");
         }
         if (req->ablate_layer() >= 0 && req->ablate_head() >= 0) {
-            char detail[128];
+            char detail[192];
+            int layer_end = req->ablate_layer_end() < 0
+                             ? req->ablate_layer() : req->ablate_layer_end();
+            int head_end  = req->ablate_head_end()  < 0
+                             ? req->ablate_head()  : req->ablate_head_end();
             snprintf(detail, sizeof(detail),
-                     "ablate L%d H%d requested but llama.cpp C-API exposes "
-                     "no per-head hook. Use the pytorch worker for ablation.",
-                     req->ablate_layer(), req->ablate_head());
+                     "ablate L%d-%d H%d-%d requested but llama.cpp C-API "
+                     "exposes no per-head hook. Use the pytorch worker for "
+                     "ablation.",
+                     req->ablate_layer(), layer_end,
+                     req->ablate_head(),  head_end);
             emit_ceiling_marker("stackscope.ablation_unsupported", detail);
         }
 

@@ -186,17 +186,31 @@ class InferenceWorkerServicer:
         hooks.attach(model)
         anomaly = AnomalyDetector()
 
-        ablate_layer = getattr(request, "ablate_layer", -1)
-        ablate_head  = getattr(request, "ablate_head", -1)
-        ablation_handles = []
+        ablate_layer     = getattr(request, "ablate_layer", -1)
+        ablate_head      = getattr(request, "ablate_head", -1)
+        ablate_layer_end = getattr(request, "ablate_layer_end", -1)
+        ablate_head_end  = getattr(request, "ablate_head_end", -1)
+        # Normalise: -1 on the *_end fields means "single cell", i.e. the
+        # rectangle collapses to just (ablate_layer, ablate_head). ≥ start
+        # activates rectangular zeroing so [layer..layer_end] × [head..head_end]
+        # are all zeroed within this one capture.
         if ablate_layer >= 0 and ablate_head >= 0:
+            layer_lo, layer_hi = ablate_layer, max(ablate_layer, ablate_layer_end)
+            head_lo,  head_hi  = ablate_head,  max(ablate_head,  ablate_head_end)
+        else:
+            layer_lo = layer_hi = head_lo = head_hi = -1
+
+        ablation_handles = []
+        if layer_lo >= 0 and head_lo >= 0:
+            heads_to_zero = set(range(head_lo, head_hi + 1))
+            layers_to_hook = set(range(layer_lo, layer_hi + 1))
             for name, mod in model.named_modules():
                 if not is_top_level_attention(mod): continue
                 parts = name.split(".")
                 li = next((int(p) for p in parts if p.isdigit()), -1)
-                if li != ablate_layer: continue
+                if li not in layers_to_hook: continue
 
-                def zero_head(m, args, kwargs, output, _h=ablate_head):
+                def zero_heads(m, args, kwargs, output, _heads=heads_to_zero):
                     def zero_tensor(t):
                         if not isinstance(t, torch.Tensor) or t.ndim < 3: return t
                         n_heads = getattr(m, "num_heads", None) or \
@@ -210,7 +224,9 @@ class InferenceWorkerServicer:
                         if hidden % n_heads != 0: return t
                         head_dim = hidden // n_heads
                         t = t.clone()
-                        t[..., _h*head_dim:(_h+1)*head_dim] = 0
+                        for h in _heads:
+                            if 0 <= h < n_heads:
+                                t[..., h*head_dim:(h+1)*head_dim] = 0
                         return t
                     if isinstance(output, torch.Tensor):
                         return zero_tensor(output)
@@ -219,8 +235,7 @@ class InferenceWorkerServicer:
                                      for x in output)
                     return output
                 ablation_handles.append(
-                    mod.register_forward_hook(zero_head, with_kwargs=True))
-                break
+                    mod.register_forward_hook(zero_heads, with_kwargs=True))
 
         # Per-head attention capture: wrap each top-level attention module.
         attn_handles = []

@@ -32,6 +32,9 @@ public partial class MainWindow : Window
 
         SelectionState.Current.PropertyChanged += (_, __) => _shell.RefreshInspectorFromSelection();
         WorkspaceState.Current.PropertyChanged += (_, __) => _shell.NotifyWorkspaceChanged();
+        // Ceiling badge click → focus Timeline. VM stays UI-agnostic;
+        // pane wiring lives here where AvalonDock is reachable.
+        _shell.CeilingJumpRequested += () => FocusPane("timeline");
         _shell.RefreshInspectorFromSelection();
 
         Loaded += OnLoaded;
@@ -77,6 +80,7 @@ public partial class MainWindow : Window
         WorkspaceState.Current.ProjectRoot = dlg.FolderName;
         _shell = new ShellViewModel(_project, _query);
         DataContext = _shell;
+        _shell.CeilingJumpRequested += () => FocusPane("timeline");
         CheckForRecoverableCaptures();
         StatusText.Text = $"Opened {dlg.FolderName}";
     }
@@ -161,7 +165,9 @@ public partial class MainWindow : Window
         // the capture to zero that head. Without this bridge the boxes
         // were display-only. -1/-1 means "no ablation".
         _runDialog.SeedAblation(_shell.AblationVm.AblateLayer,
-                                _shell.AblationVm.AblateHead);
+                                _shell.AblationVm.AblateHead,
+                                _shell.AblationVm.AblateLayerEnd,
+                                _shell.AblationVm.AblateHeadEnd);
         var ok = _runDialog.ShowDialog();
         if (ok == true && _runDialog.TransactionId is not null)
         {

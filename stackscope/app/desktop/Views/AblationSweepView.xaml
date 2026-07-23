@@ -1,0 +1,104 @@
+<UserControl x:Class="StackScope.Desktop.Views.AblationSweepView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <DockPanel LastChildFill="True" Margin="16">
+    <TextBlock DockPanel.Dock="Top" Text="Ablation Sweep"
+               Style="{StaticResource Text.Header}"
+               FontSize="{StaticResource Type.Display}" Margin="0,0,0,4"/>
+    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Text.Muted}"
+               TextWrapping="Wrap" Margin="0,0,0,12"
+               Text="Runs one single-cell ablation capture for every (L, H) in the range, diffs each against the baseline, and lays out the peak σ as a heatmap. Deep red = the head mattered most."/>
+
+    <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Baseline txn" Style="{StaticResource Text.Muted}"
+                   VerticalAlignment="Center"/>
+        <TextBox   Width="260" Margin="6,0"
+                   Text="{Binding BaselineTransactionId, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Baseline transaction id"/>
+        <TextBlock Text="σ threshold" Style="{StaticResource Text.Muted}"
+                   VerticalAlignment="Center" Margin="16,0,0,0"/>
+        <TextBox   Width="60" Margin="6,0"
+                   Text="{Binding SigmaThreshold, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Sweep sigma threshold"/>
+      </StackPanel>
+      <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+        <TextBlock Text="Layers" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+        <TextBox   Width="50" Margin="6,0"
+                   Text="{Binding LayerStart, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Sweep layer start"/>
+        <TextBlock Text="…" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+        <TextBox   Width="50" Margin="6,0"
+                   Text="{Binding LayerEnd, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Sweep layer end"/>
+        <TextBlock Text="Heads" Style="{StaticResource Text.Muted}"
+                   VerticalAlignment="Center" Margin="16,0,0,0"/>
+        <TextBox   Width="50" Margin="6,0"
+                   Text="{Binding HeadStart, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Sweep head start"/>
+        <TextBlock Text="…" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+        <TextBox   Width="50" Margin="6,0"
+                   Text="{Binding HeadEnd, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Sweep head end"/>
+        <Button    Content="Run sweep"   Command="{Binding RunSweepCommand}"
+                   Padding="16,4" Margin="16,0,0,0"
+                   IsEnabled="{Binding IsRunning, Converter={StaticResource InverseBool}}"
+                   AutomationProperties.Name="Run ablation sweep"/>
+        <Button    Content="Cancel"      Command="{Binding CancelSweepCommand}"
+                   Padding="12,4" Margin="8,0,0,0"
+                   IsEnabled="{Binding IsRunning}"
+                   AutomationProperties.Name="Cancel ablation sweep"/>
+      </StackPanel>
+    </Grid>
+
+    <Border DockPanel.Dock="Top" Padding="8,4"
+            Background="{StaticResource Brush.Surface.Elevated}"
+            BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1"
+            Margin="0,0,0,8">
+      <StackPanel Orientation="Horizontal">
+        <ProgressBar Width="140" Height="6" Margin="0,0,10,0"
+                     Foreground="{StaticResource Brush.Accent.Cyan}"
+                     Minimum="0" Maximum="{Binding CellsTotal}"
+                     Value="{Binding CellsDone}"/>
+        <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Muted}"
+                   VerticalAlignment="Center"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Heatmap: UniformGrid renders (Layer × Head) cells. Row/Col
+         counts are driven by LayerCount/HeadCount properties on the VM
+         so a range change immediately reshapes the grid. -->
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Cells}"
+                    AutomationProperties.Name="Ablation sweep heatmap">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Rows="{Binding DataContext.LayerCount,
+                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                         Columns="{Binding DataContext.HeadCount,
+                                RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Width="42" Height="30" Margin="1"
+                    BorderThickness="1"
+                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                    Background="{Binding Fill}"
+                    ToolTip="{Binding Tooltip}"
+                    AutomationProperties.Name="{Binding Tooltip}">
+              <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                         FontFamily="Consolas" Foreground="White" FontSize="10"
+                         Text="{Binding SigmaShift, StringFormat={}{0:F2}}"/>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

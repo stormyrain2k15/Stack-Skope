@@ -221,15 +221,18 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         // the transaction. Empty prompt is stored as empty string so
         // the field is always readable back.
         store.Index.SetMeta("prompt", request.Prompt ?? "");
-        store.Index.SetMeta("ablate_layer", request.AblateLayer.ToString());
-        store.Index.SetMeta("ablate_head",  request.AblateHead.ToString());
+        store.Index.SetMeta("ablate_layer",     request.AblateLayer.ToString());
+        store.Index.SetMeta("ablate_head",      request.AblateHead.ToString());
+        store.Index.SetMeta("ablate_layer_end", request.AblateLayerEnd.ToString());
+        store.Index.SetMeta("ablate_head_end",  request.AblateHeadEnd.ToString());
 
         var args = new RunInferenceArgs(
             txid, request.ModelHandle, request.Prompt,
             request.MaxNewTokens, request.Temperature, request.TopP,
             request.TopK, request.Seed,
             (CaptureLevel)(int)request.CaptureLevel,
-            request.AblateLayer, request.AblateHead);
+            request.AblateLayer, request.AblateHead,
+            request.AblateLayerEnd, request.AblateHeadEnd);
 
         ulong count = 0;
         int tokens = 0;

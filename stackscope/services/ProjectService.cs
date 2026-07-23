@@ -66,8 +66,10 @@ public sealed class ProjectService
                 using var idx = new SqliteIndex(sqlite);
                 bool completed = string.Equals(idx.GetMeta("completed"), "true",
                     StringComparison.OrdinalIgnoreCase);
-                int ablateLayer = int.TryParse(idx.GetMeta("ablate_layer"), out var al) ? al : -1;
-                int ablateHead  = int.TryParse(idx.GetMeta("ablate_head"),  out var ah) ? ah : -1;
+                int ablateLayer    = int.TryParse(idx.GetMeta("ablate_layer"),     out var al)  ? al  : -1;
+                int ablateHead     = int.TryParse(idx.GetMeta("ablate_head"),      out var ah)  ? ah  : -1;
+                int ablateLayerEnd = int.TryParse(idx.GetMeta("ablate_layer_end"), out var ale) ? ale : -1;
+                int ablateHeadEnd  = int.TryParse(idx.GetMeta("ablate_head_end"),  out var ahe) ? ahe : -1;
                 list.Add(new TransactionMetadata(
                     txid,
                     idx.GetMeta("model_handle") ?? "",
@@ -79,13 +81,15 @@ public sealed class ProjectService
                     idx.GetMeta("prompt") ?? "",
                     ablateLayer,
                     ablateHead,
-                    idx.GetMeta("capture_ceiling")));
+                    idx.GetMeta("capture_ceiling"),
+                    ablateLayerEnd,
+                    ablateHeadEnd));
             }
             catch
             {
                 // Corrupt / partial index — surface as partial capture.
                 list.Add(new TransactionMetadata(
-                    txid, "", "", 0, 0, false, "index unreadable", "", -1, -1, null));
+                    txid, "", "", 0, 0, false, "index unreadable", "", -1, -1, null, -1, -1));
             }
         }
         list.Sort((a, b) => b.StartedNs.CompareTo(a.StartedNs));
@@ -134,9 +138,14 @@ public sealed record TransactionMetadata(
     string Prompt,
     int    AblateLayer,
     int    AblateHead,
-    string? CaptureCeiling)
+    string? CaptureCeiling,
+    int    AblateLayerEnd = -1,
+    int    AblateHeadEnd  = -1)
 {
     public bool WasAblated => AblateLayer >= 0 && AblateHead >= 0;
+    /// <summary>True when the ablation covers more than one head.</summary>
+    public bool IsAblationRange =>
+        WasAblated && (AblateLayerEnd > AblateLayer || AblateHeadEnd > AblateHead);
     /// <summary>True when the worker emitted a capacity-ceiling marker
     /// (e.g. llama.cpp can't do advanced capture / ablation). The WPF
     /// status bar surfaces this so users see the fallback loudly.</summary>

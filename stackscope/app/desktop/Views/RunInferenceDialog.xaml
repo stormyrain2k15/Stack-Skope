@@ -54,10 +54,19 @@
                  Foreground="{StaticResource Brush.Accent.Cyan}"
                  VerticalAlignment="Center"/>
       <TextBlock Text="   Ablate L:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="16,0,4,0"/>
-      <TextBox Width="50" Text="{Binding AblateLayer, UpdateSourceTrigger=PropertyChanged}"/>
+      <TextBox Width="42" Text="{Binding AblateLayer, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Ablation layer start"/>
+      <TextBlock Text="…" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+      <TextBox Width="42" Text="{Binding AblateLayerEnd, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Ablation layer end"/>
       <TextBlock Text=" H:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="6,0,4,0"/>
-      <TextBox Width="50" Text="{Binding AblateHead, UpdateSourceTrigger=PropertyChanged}"/>
-      <TextBlock Text="   (-1 = no ablation)" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+      <TextBox Width="42" Text="{Binding AblateHead, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Ablation head start"/>
+      <TextBlock Text="…" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+      <TextBox Width="42" Text="{Binding AblateHeadEnd, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Ablation head end"/>
+      <TextBlock Text="   (-1 = none, ends -1 = single cell)"
+                 Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
     </StackPanel>
 
     <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">

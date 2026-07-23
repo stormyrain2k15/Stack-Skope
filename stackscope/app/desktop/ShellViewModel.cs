@@ -8,6 +8,9 @@ namespace StackScope.Desktop;
 
 public sealed partial class ShellViewModel : ObservableObject
 {
+    private readonly ProjectService _project;
+    private readonly QueryService   _query;
+
     public OverviewViewModel       OverviewVm    { get; }
     public TokensViewModel         TokensVm      { get; }
     public LayersViewModel         LayersVm      { get; }
@@ -45,6 +48,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public AnnotationsViewModel         NotesVm          { get; }
     public NaturalQueryViewModel        NaturalQueryVm   { get; }
     public PinnedDiffsViewModel         PinBoardVm       { get; }
+    public AblationSweepViewModel       SweepVm          { get; }
 
     [ObservableProperty] private string inspectorEventId = "—";
     [ObservableProperty] private string inspectorKind    = "—";
@@ -63,6 +67,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ShellViewModel(ProjectService project, QueryService query)
     {
+        _project = project;
+        _query   = query;
         OverviewVm    = new OverviewViewModel();
         TokensVm      = new TokensViewModel(query);
         LayersVm      = new LayersViewModel(query);
@@ -102,11 +108,54 @@ public sealed partial class ShellViewModel : ObservableObject
         NotesVm          = new AnnotationsViewModel(project);
         NaturalQueryVm   = new NaturalQueryViewModel();
         PinBoardVm       = new PinnedDiffsViewModel(project, CompareVm);
+        SweepVm          = new AblationSweepViewModel(project);
 
         DetectDevicesCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(DetectDevicesAsync);
+        JumpToCaptureCeilingCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(JumpToCaptureCeiling);
     }
 
     public CommunityToolkit.Mvvm.Input.IAsyncRelayCommand DetectDevicesCommand { get; }
+    public CommunityToolkit.Mvvm.Input.IRelayCommand      JumpToCaptureCeilingCommand { get; }
+
+    /// <summary>
+    /// Called when the user clicks the capture-ceiling badge in the top
+    /// bar. Locates the first <c>stackscope.capture_ceiling</c> or
+    /// <c>stackscope.ablation_unsupported</c> marker in the current
+    /// transaction, seeds <see cref="SelectionState"/> with that
+    /// event id (so every open view — Timeline, Event lists, Inspector —
+    /// follows), and requests focus on the Timeline pane. Fires a
+    /// <c>CeilingJumpRequested</c> event that MainWindow listens to for
+    /// the pane focus (VM cannot touch AvalonDock directly).
+    /// </summary>
+    public event Action? CeilingJumpRequested;
+
+    private void JumpToCaptureCeiling()
+    {
+        var txid = WorkspaceState.Current.CurrentTransactionId;
+        if (string.IsNullOrWhiteSpace(txid)) return;
+        var markerEvent = _query.Query(txid!, new StackScope.Core.Queries.EventQuery
+        {
+            Kinds = new[] { StackScope.Core.Transactions.EventKind.Marker },
+            Limit = 4096,
+        }).FirstOrDefault(ev => ev.Markers.Any(mk =>
+            mk.Name == "stackscope.capture_ceiling" ||
+            mk.Name == "stackscope.ablation_unsupported"));
+        if (markerEvent is null)
+        {
+            // No marker in the store for this transaction — the badge
+            // is showing the meta row alone. Still focus the Timeline
+            // so the user has somewhere to land instead of the click
+            // being a no-op.
+            CeilingJumpRequested?.Invoke();
+            return;
+        }
+        SelectionState.Current.EventId    = markerEvent.EventId;
+        SelectionState.Current.Kind       = markerEvent.Kind;
+        SelectionState.Current.TokenIndex = markerEvent.TokenIndex;
+        SelectionState.Current.LayerIndex = markerEvent.LayerIndex;
+        SelectionState.Current.HeadIndex  = markerEvent.HeadIndex;
+        CeilingJumpRequested?.Invoke();
+    }
 
     /// <summary>
     /// Ask the current worker (or a freshly-started pytorch worker if

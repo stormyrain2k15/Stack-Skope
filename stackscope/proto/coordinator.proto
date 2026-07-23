@@ -90,6 +90,8 @@ message CoordRunRequest {
   CaptureLevel capture_level = 9;
   int32 ablate_layer = 10;
   int32 ablate_head  = 11;
+  int32 ablate_layer_end = 12;
+  int32 ablate_head_end  = 13;
 }
 
 message RunProgress {

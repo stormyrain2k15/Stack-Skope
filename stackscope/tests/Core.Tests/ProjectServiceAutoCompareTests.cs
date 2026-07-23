@@ -19,7 +19,8 @@ public class ProjectServiceAutoCompareTests
 
     private static void WriteCapture(ProjectService project, string txid,
         string prompt, int ablateLayer, int ablateHead,
-        bool completed, string modelHandle = "m-0", long startedNs = 0)
+        bool completed, string modelHandle = "m-0", long startedNs = 0,
+        int ablateLayerEnd = -1, int ablateHeadEnd = -1)
     {
         using var store = project.OpenOrCreateStore(txid);
         store.Index.SetMeta("transaction_id", txid);
@@ -29,8 +30,10 @@ public class ProjectServiceAutoCompareTests
         store.Index.SetMeta("ended_ns",   (startedNs + 1).ToString());
         store.Index.SetMeta("completed",  completed ? "true" : "false");
         store.Index.SetMeta("prompt", prompt);
-        store.Index.SetMeta("ablate_layer", ablateLayer.ToString());
-        store.Index.SetMeta("ablate_head",  ablateHead.ToString());
+        store.Index.SetMeta("ablate_layer",     ablateLayer.ToString());
+        store.Index.SetMeta("ablate_head",      ablateHead.ToString());
+        store.Index.SetMeta("ablate_layer_end", ablateLayerEnd.ToString());
+        store.Index.SetMeta("ablate_head_end",  ablateHeadEnd.ToString());
         store.Flush();
     }
 
@@ -143,6 +146,33 @@ public class ProjectServiceAutoCompareTests
     }
 
     [Fact]
+    public void IsAblationRange_Detects_Rectangular_Ranges()
+    {
+        // Single cell — WasAblated true, IsAblationRange false.
+        var single = new TransactionMetadata("t", "m", "arch", 0, 0, true, null, "p",
+            AblateLayer: 3, AblateHead: 1, CaptureCeiling: null,
+            AblateLayerEnd: -1, AblateHeadEnd: -1);
+        Assert.True (single.WasAblated);
+        Assert.False(single.IsAblationRange);
+
+        // Layer range only.
+        var layers = single with { AblateLayerEnd = 5 };
+        Assert.True(layers.IsAblationRange);
+
+        // Head range only.
+        var heads = single with { AblateHeadEnd = 4 };
+        Assert.True(heads.IsAblationRange);
+
+        // Full rectangle.
+        var rect = single with { AblateLayerEnd = 5, AblateHeadEnd = 4 };
+        Assert.True(rect.IsAblationRange);
+
+        // Ends equal to starts — degenerate, still just single cell.
+        var degenerate = single with { AblateLayerEnd = 3, AblateHeadEnd = 1 };
+        Assert.False(degenerate.IsAblationRange);
+    }
+
+    [Fact]
     public void HasCaptureCeiling_Reflects_Meta_Row()
     {
         var t1 = new TransactionMetadata("t1", "m", "arch", 0, 0, true, null, "p", -1, -1, null);
@@ -171,6 +201,8 @@ public class ProjectServiceAutoCompareTests
                 store.Index.SetMeta("prompt", "hi");
                 store.Index.SetMeta("ablate_layer", "-1");
                 store.Index.SetMeta("ablate_head",  "-1");
+                store.Index.SetMeta("ablate_layer_end", "-1");
+                store.Index.SetMeta("ablate_head_end",  "-1");
                 store.Index.SetMeta("capture_ceiling",
                     "stackscope.capture_ceiling: llama.cpp SIMPLE only");
                 store.Flush();
@@ -178,6 +210,26 @@ public class ProjectServiceAutoCompareTests
             var t = project.ListTransactions().Single(x => x.TransactionId == "01CEILING");
             Assert.True(t.HasCaptureCeiling);
             Assert.Contains("SIMPLE only", t.CaptureCeiling!);
+        }
+        finally { try { Directory.Delete(root, true); } catch { } }
+    }
+
+    [Fact]
+    public void ListTransactions_Roundtrips_Ablation_Range_Meta()
+    {
+        var root = FreshProjectRoot();
+        try
+        {
+            var project = new ProjectService(root);
+            WriteCapture(project, "01RANGE", "prompt",
+                ablateLayer: 4, ablateHead: 0, completed: true,
+                ablateLayerEnd: 6, ablateHeadEnd: 3);
+            var t = project.ListTransactions().Single(x => x.TransactionId == "01RANGE");
+            Assert.Equal(4, t.AblateLayer);
+            Assert.Equal(0, t.AblateHead);
+            Assert.Equal(6, t.AblateLayerEnd);
+            Assert.Equal(3, t.AblateHeadEnd);
+            Assert.True(t.IsAblationRange);
         }
         finally { try { Directory.Delete(root, true); } catch { } }
     }

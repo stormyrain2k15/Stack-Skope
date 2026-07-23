@@ -51,6 +51,7 @@
         <KeyBinding Command="{x:Static cmd:Commands.NaturalQuery}"       Key="OemQuestion" Modifiers="Control"/>
         <KeyBinding Command="{x:Static cmd:Commands.PinBoard}"           Key="P" Modifiers="Control+Alt"/>
         <KeyBinding Command="{x:Static cmd:Commands.PinCurrentDiff}"     Key="P" Modifiers="Control+Alt+Shift"/>
+        <KeyBinding Command="{x:Static cmd:Commands.AblationSweep}"      Key="S" Modifiers="Control+Alt"/>
     </Window.InputBindings>
 
     <Window.CommandBindings>
@@ -93,6 +94,7 @@
         <CommandBinding Command="{x:Static cmd:Commands.NaturalQuery}"       Executed="OnFocusPane" CommandParameter="nlquery"/>
         <CommandBinding Command="{x:Static cmd:Commands.PinBoard}"           Executed="OnFocusPane" CommandParameter="pinboard"/>
         <CommandBinding Command="{x:Static cmd:Commands.PinCurrentDiff}"     Executed="OnPinCurrentDiff"/>
+        <CommandBinding Command="{x:Static cmd:Commands.AblationSweep}"      Executed="OnFocusPane" CommandParameter="sweep"/>
         <CommandBinding Command="{x:Static cmd:Commands.DebugToken}"         Executed="OnDebugToken"/>
     </Window.CommandBindings>
 
@@ -155,6 +157,7 @@
                 <Separator/>
                 <MenuItem Header="Diff _Pin Board"    Command="{x:Static cmd:Commands.PinBoard}"        InputGestureText="Ctrl+Alt+P"/>
                 <MenuItem Header="_Pin Current Diff"  Command="{x:Static cmd:Commands.PinCurrentDiff}"  InputGestureText="Ctrl+Alt+Shift+P"/>
+                <MenuItem Header="Ablation _Sweep"    Command="{x:Static cmd:Commands.AblationSweep}"   InputGestureText="Ctrl+Alt+S"/>
                 <Separator/>
                 <MenuItem Header="Debug this _token"  Command="{x:Static cmd:Commands.DebugToken}"       InputGestureText="F4"/>
             </MenuItem>
@@ -202,11 +205,16 @@
                             Visibility="{Binding HasCaptureCeiling, Converter={StaticResource BoolVis}}"
                             ToolTip="{Binding CaptureCeiling}"
                             AutomationProperties.Name="Capture ceiling">
+                        <Border.InputBindings>
+                            <MouseBinding Gesture="LeftClick"
+                                          Command="{Binding JumpToCaptureCeilingCommand}"/>
+                        </Border.InputBindings>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="⚠ ceiling: " Foreground="White"/>
                             <TextBlock Text="{Binding CaptureCeiling}" Foreground="White"
                                        FontFamily="Consolas" TextTrimming="CharacterEllipsis"
                                        MaxWidth="360"/>
+                            <TextBlock Text=" (click)" Foreground="White" Opacity="0.7"/>
                         </StackPanel>
                     </Border>
                     <Button Content="Detect" Command="{Binding DetectDevicesCommand}"
@@ -351,6 +359,9 @@
                         </avalonDock:LayoutDocument>
                         <avalonDock:LayoutDocument Title="Diff Pins" ContentId="pinboard">
                             <v:PinnedDiffsView DataContext="{Binding PinBoardVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Ablation Sweep" ContentId="sweep">
+                            <v:AblationSweepView DataContext="{Binding SweepVm}"/>
                         </avalonDock:LayoutDocument>
                     </avalonDock:LayoutDocumentPane>
 

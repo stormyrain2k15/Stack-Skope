@@ -52,8 +52,27 @@
     <ListView ItemsSource="{Binding Pins}"
               SelectedItem="{Binding Selected}"
               AutomationProperties.Name="Pinned diffs list">
+      <ListView.ItemContainerStyle>
+        <Style TargetType="ListViewItem">
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding IsDangling}" Value="True">
+              <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Rust}"/>
+              <Setter Property="ToolTip"    Value="{Binding StatusTooltip}"/>
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </ListView.ItemContainerStyle>
       <ListView.View>
         <GridView>
+          <GridViewColumn Header=""      Width="30">
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding StatusIcon}"
+                           ToolTip="{Binding StatusTooltip}"
+                           HorizontalAlignment="Center"/>
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
           <GridViewColumn Header="#"      Width="50"  DisplayMemberBinding="{Binding Id}"/>
           <GridViewColumn Header="Left"   Width="180" DisplayMemberBinding="{Binding LeftTransactionId}"/>
           <GridViewColumn Header="Right"  Width="180" DisplayMemberBinding="{Binding RightTransactionId}"/>
