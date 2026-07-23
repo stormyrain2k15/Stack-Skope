@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
+    <AssemblyName>StackScope</AssemblyName>
+    <RootNamespace>StackScope.Desktop</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\StackScope.Core.csproj" />
+    <ProjectReference Include="..\..\services\StackScope.Services.csproj" />
+    <ProjectReference Include="..\..\adapters\Runtimes\StackScope.Adapters.Runtimes.csproj" />
+    <ProjectReference Include="..\..\adapters\Architectures\StackScope.Adapters.Architectures.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="Dirkster.AvalonDock" Version="4.72.1" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,223 @@
+<Window x:Class="StackScope.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:StackScope.Desktop.Views"
+        xmlns:vm="clr-namespace:StackScope.Desktop.ViewModels"
+        xmlns:cmd="clr-namespace:StackScope.Desktop.Commands"
+        xmlns:avalonDock="https://github.com/Dirkster99/AvalonDock"
+        Title="StackScope" Height="820" Width="1400"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Brush.Surface.Base}"
+        Foreground="{StaticResource Brush.Text.Primary}"
+        UseLayoutRounding="True">
+    <Window.InputBindings>
+        <!-- InputBindings mirror KeyGestures declared in cmd:Commands -->
+        <KeyBinding Command="{x:Static cmd:Commands.OpenProject}"        Key="O" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.OpenModel}"          Key="M" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.StartCapture}"       Key="F5"/>
+        <KeyBinding Command="{x:Static cmd:Commands.StopCapture}"        Key="F5" Modifiers="Shift"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusOverview}"      Key="D1" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusTokens}"        Key="D2" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusLayers}"        Key="D3" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusAttention}"     Key="D4" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusActivations}"   Key="D5" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusTensors}"       Key="D6" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusDriver}"        Key="D7" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusKernels}"       Key="D8" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusMemory}"        Key="D9" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusTimeline}"      Key="D0" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusCompare}"       Key="OemMinus" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.FocusLibrary}"       Key="OemPlus" Modifiers="Control"/>
+        <KeyBinding Command="{x:Static cmd:Commands.BackSelection}"      Key="Left"  Modifiers="Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.ForwardSelection}"   Key="Right" Modifiers="Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.DisclosureSimple}"   Key="F1"/>
+        <KeyBinding Command="{x:Static cmd:Commands.DisclosureAdvanced}" Key="F2"/>
+        <KeyBinding Command="{x:Static cmd:Commands.DisclosureForensic}" Key="F3"/>
+        <KeyBinding Command="{x:Static cmd:Commands.OpenPalette}"        Key="P" Modifiers="Control+Shift"/>
+    </Window.InputBindings>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static cmd:Commands.OpenProject}"        Executed="OnOpenProject"/>
+        <CommandBinding Command="{x:Static cmd:Commands.OpenModel}"          Executed="OnOpenModel"/>
+        <CommandBinding Command="{x:Static cmd:Commands.StartCapture}"       Executed="OnStartCapture"/>
+        <CommandBinding Command="{x:Static cmd:Commands.StopCapture}"        Executed="OnStopCapture"/>
+        <CommandBinding Command="{x:Static cmd:Commands.BackSelection}"      Executed="OnBackSelection"/>
+        <CommandBinding Command="{x:Static cmd:Commands.ForwardSelection}"   Executed="OnForwardSelection"/>
+        <CommandBinding Command="{x:Static cmd:Commands.DisclosureSimple}"   Executed="OnDisclosureSimple"/>
+        <CommandBinding Command="{x:Static cmd:Commands.DisclosureAdvanced}" Executed="OnDisclosureAdvanced"/>
+        <CommandBinding Command="{x:Static cmd:Commands.DisclosureForensic}" Executed="OnDisclosureForensic"/>
+        <CommandBinding Command="{x:Static cmd:Commands.OpenPalette}"        Executed="OnOpenPalette"/>
+        <CommandBinding Command="{x:Static cmd:Commands.SaveLayout}"         Executed="OnSaveLayout"/>
+        <CommandBinding Command="{x:Static cmd:Commands.ResetLayout}"        Executed="OnResetLayout"/>
+    </Window.CommandBindings>
+
+    <DockPanel LastChildFill="True">
+        <!-- Menu bar -->
+        <Menu DockPanel.Dock="Top" Background="{StaticResource Brush.Surface.Elevated}"
+              Foreground="{StaticResource Brush.Text.Primary}"
+              FontFamily="{StaticResource Font.UI}">
+            <MenuItem Header="_File">
+                <MenuItem Header="Open _Project…" Command="{x:Static cmd:Commands.OpenProject}"/>
+                <MenuItem Header="Open _Model…"   Command="{x:Static cmd:Commands.OpenModel}"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Click="OnExit"/>
+            </MenuItem>
+            <MenuItem Header="_Capture">
+                <MenuItem Header="_Start" InputGestureText="F5"
+                          Command="{x:Static cmd:Commands.StartCapture}"/>
+                <MenuItem Header="S_top"  InputGestureText="Shift+F5"
+                          Command="{x:Static cmd:Commands.StopCapture}"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Overview"       Command="{x:Static cmd:Commands.FocusOverview}"    InputGestureText="Ctrl+1"/>
+                <MenuItem Header="_Tokens"         Command="{x:Static cmd:Commands.FocusTokens}"      InputGestureText="Ctrl+2"/>
+                <MenuItem Header="_Layers"         Command="{x:Static cmd:Commands.FocusLayers}"      InputGestureText="Ctrl+3"/>
+                <MenuItem Header="_Attention"      Command="{x:Static cmd:Commands.FocusAttention}"   InputGestureText="Ctrl+4"/>
+                <MenuItem Header="Ac_tivations"    Command="{x:Static cmd:Commands.FocusActivations}" InputGestureText="Ctrl+5"/>
+                <MenuItem Header="Ten_sors"        Command="{x:Static cmd:Commands.FocusTensors}"     InputGestureText="Ctrl+6"/>
+                <MenuItem Header="_Driver"         Command="{x:Static cmd:Commands.FocusDriver}"      InputGestureText="Ctrl+7"/>
+                <MenuItem Header="_Kernels"        Command="{x:Static cmd:Commands.FocusKernels}"     InputGestureText="Ctrl+8"/>
+                <MenuItem Header="_Memory"         Command="{x:Static cmd:Commands.FocusMemory}"      InputGestureText="Ctrl+9"/>
+                <MenuItem Header="Time_line"       Command="{x:Static cmd:Commands.FocusTimeline}"    InputGestureText="Ctrl+0"/>
+                <MenuItem Header="_Compare"        Command="{x:Static cmd:Commands.FocusCompare}"     InputGestureText="Ctrl+-"/>
+                <MenuItem Header="Library"         Command="{x:Static cmd:Commands.FocusLibrary}"     InputGestureText="Ctrl+="/>
+            </MenuItem>
+            <MenuItem Header="_Mode">
+                <MenuItem Header="_Simple"   Command="{x:Static cmd:Commands.DisclosureSimple}"   InputGestureText="F1"/>
+                <MenuItem Header="_Advanced" Command="{x:Static cmd:Commands.DisclosureAdvanced}" InputGestureText="F2"/>
+                <MenuItem Header="_Forensic" Command="{x:Static cmd:Commands.DisclosureForensic}" InputGestureText="F3"/>
+            </MenuItem>
+            <MenuItem Header="_Layout">
+                <MenuItem Header="_Save"  Command="{x:Static cmd:Commands.SaveLayout}"  InputGestureText="Ctrl+Shift+S"/>
+                <MenuItem Header="_Reset" Command="{x:Static cmd:Commands.ResetLayout}" InputGestureText="Ctrl+Shift+R"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Global selector bar -->
+        <Border DockPanel.Dock="Top" Padding="12,6"
+                Background="{StaticResource Brush.Surface.Panel}"
+                BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Project:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding ProjectRoot}" Style="{StaticResource Text.Mono}"
+                           Margin="6,0,16,0" VerticalAlignment="Center"
+                           x:Name="ProjectRootText"/>
+                <TextBlock Text="Model:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding CurrentModelHandle}" Style="{StaticResource Text.Mono}"
+                           Margin="6,0,16,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Txn:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding CurrentTransactionId}" Style="{StaticResource Text.Mono}"
+                           Margin="6,0,16,0" VerticalAlignment="Center"
+                           x:Name="TxnBadge"/>
+                <TextBlock Text="Mode:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Disclosure}" Style="{StaticResource Text.Body}"
+                           Margin="6,0,0,0" VerticalAlignment="Center"
+                           Foreground="{StaticResource Brush.Accent.Cyan}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Padding="12,4"
+                Background="{StaticResource Brush.Surface.Elevated}"
+                BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="StatusText" Text="Ready." Style="{StaticResource Text.Muted}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Docking workspace -->
+        <avalonDock:DockingManager x:Name="Dock">
+            <avalonDock:LayoutRoot>
+                <avalonDock:LayoutPanel Orientation="Horizontal">
+                    <avalonDock:LayoutAnchorablePane DockWidth="240">
+                        <avalonDock:LayoutAnchorable Title="Library" ContentId="library"
+                                                    CanClose="False" CanHide="False">
+                            <v:CaptureLibraryView DataContext="{Binding LibraryVm}"/>
+                        </avalonDock:LayoutAnchorable>
+                    </avalonDock:LayoutAnchorablePane>
+
+                    <avalonDock:LayoutDocumentPane>
+                        <avalonDock:LayoutDocument Title="Overview" ContentId="overview">
+                            <v:OverviewView DataContext="{Binding OverviewVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Tokens" ContentId="tokens">
+                            <v:EventListView DataContext="{Binding TokensVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Layers" ContentId="layers">
+                            <v:EventListView DataContext="{Binding LayersVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Attention" ContentId="attention">
+                            <v:EventListView DataContext="{Binding AttentionVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Activations" ContentId="activations">
+                            <v:EventListView DataContext="{Binding ActivationsVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Tensors" ContentId="tensors">
+                            <v:EventListView DataContext="{Binding TensorsVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Driver" ContentId="driver">
+                            <v:EventListView DataContext="{Binding DriverVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Kernels" ContentId="kernels">
+                            <v:EventListView DataContext="{Binding KernelsVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Memory" ContentId="memory">
+                            <v:EventListView DataContext="{Binding MemoryVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Timeline" ContentId="timeline">
+                            <v:TimelineView DataContext="{Binding TimelineVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Compare" ContentId="compare">
+                            <v:CompareView DataContext="{Binding CompareVm}"/>
+                        </avalonDock:LayoutDocument>
+                    </avalonDock:LayoutDocumentPane>
+
+                    <avalonDock:LayoutAnchorablePane DockWidth="320">
+                        <avalonDock:LayoutAnchorable Title="Inspector" ContentId="inspector"
+                                                    CanClose="False" CanHide="False">
+                            <ScrollViewer>
+                                <StackPanel Margin="12">
+                                    <TextBlock Text="Selection" Style="{StaticResource Text.Header}"
+                                               Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Event" Style="{StaticResource Text.Muted}" Width="80"/>
+                                        <TextBlock Text="{Binding InspectorEventId}"
+                                                   Style="{StaticResource Text.Mono}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Kind"  Style="{StaticResource Text.Muted}" Width="80"/>
+                                        <TextBlock Text="{Binding InspectorKind}"
+                                                   Style="{StaticResource Text.Mono}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Token" Style="{StaticResource Text.Muted}" Width="80"/>
+                                        <TextBlock Text="{Binding InspectorToken}"
+                                                   Style="{StaticResource Text.Mono}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Layer" Style="{StaticResource Text.Muted}" Width="80"/>
+                                        <TextBlock Text="{Binding InspectorLayer}"
+                                                   Style="{StaticResource Text.Mono}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Head"  Style="{StaticResource Text.Muted}" Width="80"/>
+                                        <TextBlock Text="{Binding InspectorHead}"
+                                                   Style="{StaticResource Text.Mono}"/>
+                                    </StackPanel>
+                                    <TextBlock Margin="0,12,0,4" Text="Correlation Confidence"
+                                               Style="{StaticResource Text.Muted}"/>
+                                    <Border Padding="6,3" CornerRadius="2"
+                                            Background="{StaticResource Brush.Surface.Elevated}">
+                                        <TextBlock Text="{Binding InspectorConfidenceLabel}"
+                                                   Style="{StaticResource Text.Mono}"
+                                                   Foreground="{Binding InspectorConfidenceBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </avalonDock:LayoutAnchorable>
+                    </avalonDock:LayoutAnchorablePane>
+                </avalonDock:LayoutPanel>
+            </avalonDock:LayoutRoot>
+        </avalonDock:DockingManager>
+    </DockPanel>
+</Window>

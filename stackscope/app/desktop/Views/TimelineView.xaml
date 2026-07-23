@@ -1,0 +1,36 @@
+<UserControl x:Class="StackScope.Desktop.Views.TimelineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+    <!-- The timeline draws real trace-marker ranges from the events
+         stream. Marker rendering is done in code-behind against the
+         real payload — no synthetic bars, no fake ranges. -->
+    <DockPanel LastChildFill="True">
+        <Border DockPanel.Dock="Top" Padding="8,6"
+                Background="{StaticResource Brush.Surface.Elevated}"
+                BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Timeline" Style="{StaticResource Text.Header}"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+            </StackPanel>
+        </Border>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Events}"
+                          x:Name="TimelineHost"
+                          AutomationProperties.Name="Timeline of trace markers">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Height="18" Margin="1,1,1,1"
+                                Background="{StaticResource Brush.Surface.Elevated}"
+                                BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                BorderThickness="1">
+                            <TextBlock Style="{StaticResource Text.Mono}"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Kind, StringFormat='{}{0}'}"/>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

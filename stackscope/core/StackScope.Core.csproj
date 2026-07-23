@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>StackScope.Core</AssemblyName>
+    <RootNamespace>StackScope.Core</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Google.Protobuf" Version="3.28.2" />
+    <PackageReference Include="Grpc.Tools" Version="2.66.0" PrivateAssets="all" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\proto\events.proto" GrpcServices="Both" Link="proto\events.proto" ProtoRoot="..\proto" />
+    <Protobuf Include="..\proto\worker.proto" GrpcServices="Both" Link="proto\worker.proto" ProtoRoot="..\proto" />
+    <Protobuf Include="..\proto\coordinator.proto" GrpcServices="Both" Link="proto\coordinator.proto" ProtoRoot="..\proto" />
+  </ItemGroup>
+</Project>

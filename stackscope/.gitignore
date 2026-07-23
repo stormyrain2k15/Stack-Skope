@@ -1,0 +1,44 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+*.swp
+
+## Rider / VS Code
+.vscode/
+*.iml
+
+## Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+## Native
+build/
+cmake-build-*/
+*.dll
+*.so
+*.dylib
+*.exe
+*.pdb
+
+## StackScope runtime
+storage/*.mmap
+storage/*.sqlite
+storage/*.sqlite-journal
+storage/*.sqlite-wal
+storage/*.sqlite-shm
+!storage/README.md
+
+## OS
+.DS_Store
+Thumbs.db

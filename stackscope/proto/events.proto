@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package stackscope.v1;
+
+option csharp_namespace = "StackScope.Proto.V1";
+
+// A single event captured during an inference transaction.
+// Every visible object in the UI ultimately references an EventId.
+message Event {
+  uint64 event_id       = 1;   // monotonic within a transaction
+  string transaction_id = 2;   // ULID
+  int64  timestamp_ns   = 3;   // steady clock, worker-side
+  EventKind kind        = 4;
+  int32  token_index    = 5;   // -1 if not applicable
+  int32  layer_index    = 6;   // -1 if not applicable
+  int32  head_index     = 7;   // -1 if not applicable
+  int32  thread_id      = 8;
+  int32  stream_id      = 9;   // GPU stream, -1 if CPU
+  int32  device_id      = 10;
+  bytes  payload        = 11;  // event-specific, see EventKind
+  repeated TraceMarker markers = 12;
+}
+
+enum EventKind {
+  EVENT_UNKNOWN            = 0;
+  EVENT_TOKEN_BEGIN        = 1;
+  EVENT_TOKEN_END          = 2;
+  EVENT_LAYER_BEGIN        = 3;
+  EVENT_LAYER_END          = 4;
+  EVENT_ATTENTION_QKV      = 5;
+  EVENT_ATTENTION_SCORES   = 6;
+  EVENT_ATTENTION_OUTPUT   = 7;
+  EVENT_ACTIVATION         = 8;
+  EVENT_TENSOR_READ        = 9;
+  EVENT_TENSOR_WRITE       = 10;
+  EVENT_KERNEL_LAUNCH      = 11;
+  EVENT_KERNEL_END         = 12;
+  EVENT_MEMCPY             = 13;
+  EVENT_ALLOC              = 14;
+  EVENT_FREE               = 15;
+  EVENT_LOGITS             = 16;
+  EVENT_SAMPLE             = 17;
+  EVENT_MARKER             = 18;
+}
+
+// A marker injected around a semantic region (token, layer, head, projection).
+// Used by CorrelationEngine to associate driver events with worker events.
+message TraceMarker {
+  string name           = 1;
+  int64  begin_ns       = 2;
+  int64  end_ns         = 3;   // 0 for point markers
+  uint32 color_rgba     = 4;
+  int32  thread_id      = 5;
+  int32  stream_id      = 6;
+  uint64 correlation_id = 7;   // NVTX/rocTX correlation id when available
+}
+
+// Tensor payload describing a captured tensor slice.
+message TensorPayload {
+  string name            = 1;
+  repeated int64 shape   = 2;
+  string dtype           = 3;   // "f32", "f16", "bf16", "q4_k", etc.
+  int64  byte_offset     = 4;   // offset into the backing mmap tensor file
+  int64  byte_length     = 5;
+  bytes  scale           = 6;   // quant scale, empty if none
+  bytes  zero_point      = 7;   // quant zero point, empty if none
+  string checksum_sha256 = 8;
+}
+
+// Kernel launch payload.
+message KernelPayload {
+  string kernel_name     = 1;
+  uint64 grid_x          = 2;
+  uint64 grid_y          = 3;
+  uint64 grid_z          = 4;
+  uint64 block_x         = 5;
+  uint64 block_y         = 6;
+  uint64 block_z         = 7;
+  uint32 shared_bytes    = 8;
+  uint64 duration_ns     = 9;   // end - begin
+}
+
+// Memory allocation payload.
+message AllocPayload {
+  uint64 address         = 1;
+  uint64 size_bytes      = 2;
+  string arena           = 3;   // "cuda", "rocm", "host", "pinned"
+  string allocator_tag   = 4;
+}
+
+// Attention capture payload.
+message AttentionPayload {
+  int32  n_heads         = 1;
+  int32  seq_len         = 2;
+  int32  head_dim        = 3;
+  string q_tensor_name   = 4;
+  string k_tensor_name   = 5;
+  string v_tensor_name   = 6;
+  string scores_tensor_name = 7;
+  string output_tensor_name = 8;
+}

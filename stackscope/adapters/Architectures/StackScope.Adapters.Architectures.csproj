@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>StackScope.Adapters.Architectures</AssemblyName>
+    <RootNamespace>StackScope.Adapters.Architectures</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\StackScope.Core.csproj" />
+    <ProjectReference Include="..\Formats\SafeTensors\StackScope.Adapters.Formats.SafeTensors.csproj" />
+    <ProjectReference Include="..\Formats\Gguf\StackScope.Adapters.Formats.Gguf.csproj" />
+    <ProjectReference Include="..\Formats\Transformers\StackScope.Adapters.Formats.Transformers.csproj" />
+  </ItemGroup>
+</Project>

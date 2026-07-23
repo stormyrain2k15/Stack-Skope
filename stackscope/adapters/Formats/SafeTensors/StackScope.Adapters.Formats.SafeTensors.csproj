@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>StackScope.Adapters.Formats.SafeTensors</AssemblyName>
+    <RootNamespace>StackScope.Adapters.Formats.SafeTensors</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\StackScope.Core.csproj" />
+  </ItemGroup>
+</Project>

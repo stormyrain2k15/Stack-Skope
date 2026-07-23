@@ -1,0 +1,88 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        StackScope dark palette — charcoal base, soft white text, muted
+        accents. Deliberately avoids the standard "cobalt on midnight
+        blue" IDE look. Every colour has a companion colourblind-safe
+        symbol so we never rely on hue alone (see icons/*.xaml).
+    -->
+
+    <!-- Surfaces -->
+    <Color x:Key="Color.Surface.Base">#111318</Color>
+    <Color x:Key="Color.Surface.Panel">#171A21</Color>
+    <Color x:Key="Color.Surface.Elevated">#1D212A</Color>
+    <Color x:Key="Color.Surface.Overlay">#22272F</Color>
+
+    <!-- Text -->
+    <Color x:Key="Color.Text.Primary">#E6E7EA</Color>
+    <Color x:Key="Color.Text.Secondary">#A2A6B0</Color>
+    <Color x:Key="Color.Text.Muted">#6C7280</Color>
+    <Color x:Key="Color.Text.Disabled">#4B4F58</Color>
+
+    <!-- Borders -->
+    <Color x:Key="Color.Border.Subtle">#2A2F3A</Color>
+    <Color x:Key="Color.Border.Strong">#3A4050</Color>
+
+    <!-- Accents (muted, colourblind-safe pairs) -->
+    <Color x:Key="Color.Accent.Amber">#C9A96A</Color>   <!-- primary attention -->
+    <Color x:Key="Color.Accent.Cyan">#7FB6BF</Color>    <!-- selection / focus -->
+    <Color x:Key="Color.Accent.Violet">#9F8ABF</Color>  <!-- tokens -->
+    <Color x:Key="Color.Accent.Rust">#B47559</Color>    <!-- warnings -->
+    <Color x:Key="Color.Accent.Sage">#7FA382</Color>    <!-- success -->
+    <Color x:Key="Color.Accent.Slate">#7A8494</Color>   <!-- neutral -->
+
+    <!-- Confidence colours (mirrors CorrelationConfidence). Text label
+         is always shown next to the visual — colour alone is advisory. -->
+    <Color x:Key="Color.Confidence.Direct">#7FA382</Color>
+    <Color x:Key="Color.Confidence.RuntimeCorrelated">#7FB6BF</Color>
+    <Color x:Key="Color.Confidence.AddressCorrelated">#C9A96A</Color>
+    <Color x:Key="Color.Confidence.MarkerCorrelated">#9F8ABF</Color>
+    <Color x:Key="Color.Confidence.TimeCorrelated">#B47559</Color>
+    <Color x:Key="Color.Confidence.Inferred">#7A8494</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="Brush.Surface.Base"     Color="{StaticResource Color.Surface.Base}"/>
+    <SolidColorBrush x:Key="Brush.Surface.Panel"    Color="{StaticResource Color.Surface.Panel}"/>
+    <SolidColorBrush x:Key="Brush.Surface.Elevated" Color="{StaticResource Color.Surface.Elevated}"/>
+    <SolidColorBrush x:Key="Brush.Surface.Overlay"  Color="{StaticResource Color.Surface.Overlay}"/>
+
+    <SolidColorBrush x:Key="Brush.Text.Primary"   Color="{StaticResource Color.Text.Primary}"/>
+    <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{StaticResource Color.Text.Secondary}"/>
+    <SolidColorBrush x:Key="Brush.Text.Muted"     Color="{StaticResource Color.Text.Muted}"/>
+    <SolidColorBrush x:Key="Brush.Text.Disabled"  Color="{StaticResource Color.Text.Disabled}"/>
+
+    <SolidColorBrush x:Key="Brush.Border.Subtle" Color="{StaticResource Color.Border.Subtle}"/>
+    <SolidColorBrush x:Key="Brush.Border.Strong" Color="{StaticResource Color.Border.Strong}"/>
+
+    <SolidColorBrush x:Key="Brush.Accent.Amber"  Color="{StaticResource Color.Accent.Amber}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Cyan"   Color="{StaticResource Color.Accent.Cyan}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Violet" Color="{StaticResource Color.Accent.Violet}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Rust"   Color="{StaticResource Color.Accent.Rust}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Sage"   Color="{StaticResource Color.Accent.Sage}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Slate"  Color="{StaticResource Color.Accent.Slate}"/>
+
+    <!-- Typography.  Deliberately avoid Inter/Segoe UI; prefer a
+         mono-plus-humanist pairing common in engineering tools. Font
+         family fallbacks provided so it degrades gracefully. -->
+    <FontFamily x:Key="Font.UI"   >IBM Plex Sans, Segoe UI, Roboto, Arial</FontFamily>
+    <FontFamily x:Key="Font.Mono" >JetBrains Mono, Cascadia Mono, Consolas, Courier New</FontFamily>
+    <FontFamily x:Key="Font.Display">IBM Plex Serif, Georgia, Times New Roman</FontFamily>
+
+    <!-- Spacing -->
+    <sys:Double x:Key="Spacing.Unit">4</sys:Double>
+    <sys:Double x:Key="Spacing.XS">4</sys:Double>
+    <sys:Double x:Key="Spacing.S">8</sys:Double>
+    <sys:Double x:Key="Spacing.M">16</sys:Double>
+    <sys:Double x:Key="Spacing.L">24</sys:Double>
+    <sys:Double x:Key="Spacing.XL">40</sys:Double>
+
+    <!-- Type scale -->
+    <sys:Double x:Key="Type.Caption">11</sys:Double>
+    <sys:Double x:Key="Type.Body">12</sys:Double>
+    <sys:Double x:Key="Type.BodyEmphasis">13</sys:Double>
+    <sys:Double x:Key="Type.Header">15</sys:Double>
+    <sys:Double x:Key="Type.Display">22</sys:Double>
+</ResourceDictionary>

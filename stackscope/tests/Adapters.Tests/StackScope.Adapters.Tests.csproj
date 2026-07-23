@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AssemblyName>StackScope.Adapters.Tests</AssemblyName>
+    <RootNamespace>StackScope.Adapters.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\adapters\Formats\SafeTensors\StackScope.Adapters.Formats.SafeTensors.csproj" />
+    <ProjectReference Include="..\..\adapters\Formats\Gguf\StackScope.Adapters.Formats.Gguf.csproj" />
+    <ProjectReference Include="..\..\adapters\Formats\Transformers\StackScope.Adapters.Formats.Transformers.csproj" />
+    <ProjectReference Include="..\..\adapters\Architectures\StackScope.Adapters.Architectures.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+</Project>

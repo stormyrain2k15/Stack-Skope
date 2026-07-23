@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>StackScope.Adapters.Drivers.Cpu</AssemblyName>
+    <RootNamespace>StackScope.Adapters.Drivers.Cpu</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\StackScope.Core.csproj" />
+  </ItemGroup>
+</Project>

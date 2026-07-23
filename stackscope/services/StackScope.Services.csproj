@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>StackScope.Services</AssemblyName>
+    <RootNamespace>StackScope.Services</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\core\StackScope.Core.csproj" />
+    <ProjectReference Include="..\adapters\Runtimes\StackScope.Adapters.Runtimes.csproj" />
+    <ProjectReference Include="..\adapters\Architectures\StackScope.Adapters.Architectures.csproj" />
+    <ProjectReference Include="..\adapters\Formats\SafeTensors\StackScope.Adapters.Formats.SafeTensors.csproj" />
+    <ProjectReference Include="..\adapters\Formats\Gguf\StackScope.Adapters.Formats.Gguf.csproj" />
+    <ProjectReference Include="..\adapters\Formats\Transformers\StackScope.Adapters.Formats.Transformers.csproj" />
+    <ProjectReference Include="..\adapters\Formats\TensorFlow\StackScope.Adapters.Formats.TensorFlow.csproj" />
+    <ProjectReference Include="..\adapters\Drivers\Cpu\StackScope.Adapters.Drivers.Cpu.csproj" />
+  </ItemGroup>
+</Project>

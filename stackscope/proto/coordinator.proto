@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package stackscope.v1;
+
+import "events.proto";
+
+option csharp_namespace = "StackScope.Proto.V1";
+
+// The Coordinator lives in-process with the WPF UI. The UI talks to it
+// only through this gRPC surface — never touches workers directly.
+service Coordinator {
+  rpc ListWorkers(ListWorkersRequest) returns (ListWorkersReply);
+  rpc StartWorker(StartWorkerRequest) returns (StartWorkerReply);
+  rpc StopWorker(StopWorkerRequest)   returns (StopWorkerReply);
+
+  rpc LoadModel(CoordLoadModelRequest)    returns (CoordLoadModelReply);
+  rpc RunInference(CoordRunRequest)       returns (stream RunProgress);
+  rpc CancelInference(CancelRequest)      returns (CancelReply);
+
+  // Query surface over the event store. Everything the UI shows goes
+  // through this. UI never scans mmap files itself.
+  rpc QueryEvents(QueryEventsRequest)     returns (stream Event);
+  rpc CountEvents(QueryEventsRequest)     returns (CountReply);
+  rpc GetTransaction(GetTransactionRequest) returns (TransactionSummary);
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsReply);
+  rpc ReadTensor(CoordReadTensorRequest)  returns (ReadTensorReply);
+}
+
+message ListWorkersRequest {}
+message ListWorkersReply {
+  repeated WorkerInfo workers = 1;
+}
+message WorkerInfo {
+  string worker_id   = 1;
+  string kind        = 2;
+  string endpoint    = 3;
+  int32  pid         = 4;
+  bool   healthy     = 5;
+}
+
+message StartWorkerRequest {
+  string kind        = 1;   // "pytorch" | "llamacpp" | "tf"
+  string device_hint = 2;
+}
+message StartWorkerReply { WorkerInfo worker = 1; }
+
+message StopWorkerRequest { string worker_id = 1; }
+message StopWorkerReply {}
+
+message CoordLoadModelRequest {
+  string worker_id     = 1;
+  string model_path    = 2;
+  string format        = 3;
+  string device        = 4;
+  bool   trust_remote_code = 5;
+  int32  n_ctx         = 6;
+}
+message CoordLoadModelReply {
+  string model_handle  = 1;
+  string architecture  = 2;
+  int32  n_layers      = 3;
+  int32  n_heads       = 4;
+  int32  hidden_size   = 5;
+  int32  vocab_size    = 6;
+  string transaction_scope_id = 7;
+}
+
+message CoordRunRequest {
+  string worker_id       = 1;
+  string model_handle    = 2;
+  string prompt          = 3;
+  int32  max_new_tokens  = 4;
+  float  temperature     = 5;
+  float  top_p           = 6;
+  int32  top_k           = 7;
+  uint64 seed            = 8;
+  CaptureLevel capture_level = 9;
+}
+
+message RunProgress {
+  string transaction_id  = 1;
+  uint64 events_committed = 2;
+  int32  tokens_emitted  = 3;
+  bool   finished        = 4;
+  string error           = 5;
+}
+
+message CancelRequest { string transaction_id = 1; }
+message CancelReply {}
+
+message QueryEventsRequest {
+  string transaction_id = 1;
+  repeated EventKind kinds = 2;
+  int32 token_index_from = 3;
+  int32 token_index_to   = 4;   // inclusive; -1 = unbounded
+  int32 layer_index_from = 5;
+  int32 layer_index_to   = 6;
+  int32 head_index_from  = 7;
+  int32 head_index_to    = 8;
+  int64 time_from_ns     = 9;
+  int64 time_to_ns       = 10;
+  uint64 offset          = 11;  // for virtualised paging
+  uint32 limit           = 12;
+}
+message CountReply { uint64 count = 1; }
+
+message GetTransactionRequest { string transaction_id = 1; }
+message TransactionSummary {
+  string transaction_id = 1;
+  string model_handle   = 2;
+  string architecture   = 3;
+  int64  started_ns     = 4;
+  int64  ended_ns       = 5;
+  uint64 event_count    = 6;
+  int32  token_count    = 7;
+  bool   completed      = 8;
+  string error          = 9;
+}
+
+message ListTransactionsRequest {}
+message ListTransactionsReply {
+  repeated TransactionSummary transactions = 1;
+}
+
+message CoordReadTensorRequest {
+  string transaction_id = 1;
+  uint64 event_id       = 2;
+}

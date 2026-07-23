@@ -1,0 +1,31 @@
+<UserControl x:Class="StackScope.Desktop.Views.CaptureLibraryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+    <DockPanel LastChildFill="True" Margin="16">
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Text="Capture Library" Style="{StaticResource Text.Header}"
+                       FontSize="{StaticResource Type.Display}"/>
+            <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="24,0,0,0"
+                    AutomationProperties.Name="Refresh capture library"/>
+        </StackPanel>
+        <ListView ItemsSource="{Binding Transactions}"
+                  SelectedItem="{Binding SelectedTransaction}"
+                  AutomationProperties.Name="Captured transactions">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Transaction" Width="220"
+                                    DisplayMemberBinding="{Binding TransactionId}"/>
+                    <GridViewColumn Header="Architecture" Width="180"
+                                    DisplayMemberBinding="{Binding Architecture}"/>
+                    <GridViewColumn Header="Model" Width="220"
+                                    DisplayMemberBinding="{Binding ModelHandle}"/>
+                    <GridViewColumn Header="Completed" Width="90"
+                                    DisplayMemberBinding="{Binding Completed}"/>
+                    <GridViewColumn Header="Error" Width="240"
+                                    DisplayMemberBinding="{Binding Error}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</UserControl>
