@@ -69,15 +69,49 @@ class Kind:
 # when the hook is installed so hook callbacks don't pay string cost.
 # ---------------------------------------------------------------------------
 
+_BLOCK_CONTAINER_NAMES = ("layers", "h", "block", "blocks")
+
+
 def infer_layer_index(module_name: str) -> int:
+    """Return the block index this module belongs to, or -1.
+
+    Walks the dotted path and returns the integer that immediately follows
+    a recognised block-container segment (``layers.<N>``, ``h.<N>``,
+    ``block(s).<N>``). Descendants of a block share their block's index —
+    that is intentional; it is how activations and attention projections
+    get tagged with the layer they live inside. Use
+    :func:`is_transformer_block` when you need to detect the block itself.
+    """
     parts = module_name.split(".")
     for i, p in enumerate(parts):
-        if p in ("layers", "h", "encoder", "decoder") and i + 1 < len(parts):
+        if p in _BLOCK_CONTAINER_NAMES and i + 1 < len(parts):
             try:
                 return int(parts[i + 1])
             except ValueError:
                 return -1
     return -1
+
+
+def is_transformer_block(module_name: str) -> bool:
+    """True iff this module *is* a transformer block, not a descendant.
+
+    A transformer block has a name whose last two segments are one of the
+    known block-container names and a numeric index — e.g.
+    ``model.layers.7`` or ``transformer.h.11``. This is what should gate
+    ``LAYER_BEGIN`` / ``LAYER_END`` emission, so we do not double-count
+    inner leaves like ``model.layers.7.mlp`` which share the same
+    :func:`infer_layer_index`.
+    """
+    parts = module_name.split(".")
+    if len(parts) < 2:
+        return False
+    if parts[-2] not in _BLOCK_CONTAINER_NAMES:
+        return False
+    try:
+        int(parts[-1])
+    except ValueError:
+        return False
+    return True
 
 
 def is_attention_projection(module_name: str) -> Optional[str]:
@@ -117,9 +151,10 @@ class HookCapture:
                 continue
             layer_idx = infer_layer_index(name)
             proj = is_attention_projection(name)
+            is_block = is_transformer_block(name)
 
-            pre_hook = self._make_pre_hook(name, module, layer_idx, proj)
-            post_hook = self._make_post_hook(name, module, layer_idx, proj)
+            pre_hook = self._make_pre_hook(name, module, layer_idx, proj, is_block)
+            post_hook = self._make_post_hook(name, module, layer_idx, proj, is_block)
 
             self._handles.append(module.register_forward_pre_hook(pre_hook, with_kwargs=True))
             self._handles.append(module.register_forward_hook(post_hook, with_kwargs=True))
@@ -183,7 +218,8 @@ class HookCapture:
     # -- internal hook factories -------------------------------------------
 
     def _make_pre_hook(
-        self, name: str, module: nn.Module, layer_idx: int, proj: Optional[str]
+        self, name: str, module: nn.Module, layer_idx: int,
+        proj: Optional[str], is_block: bool,
     ) -> Callable:
         def _hook(mod, args, kwargs):
             corr = next_correlation_id()
@@ -196,7 +232,11 @@ class HookCapture:
             mod._stackscope_marker_begin = now_ns()  # type: ignore[attr-defined]
             mod._stackscope_marker_corr = corr       # type: ignore[attr-defined]
 
-            if layer_idx >= 0 and proj is None:
+            # LAYER_BEGIN fires ONLY on the transformer block itself
+            # (e.g. ``model.layers.7``), never on inner leaves that
+            # happen to share the same inferred layer index — otherwise
+            # a three-layer model emits six LAYER_BEGIN events.
+            if is_block:
                 self._q.put(Event(
                     kind=Kind.LAYER_BEGIN,
                     timestamp_ns=mod._stackscope_marker_begin,  # type: ignore[attr-defined]
@@ -210,7 +250,8 @@ class HookCapture:
         return _hook
 
     def _make_post_hook(
-        self, name: str, module: nn.Module, layer_idx: int, proj: Optional[str]
+        self, name: str, module: nn.Module, layer_idx: int,
+        proj: Optional[str], is_block: bool,
     ) -> Callable:
         def _hook(mod, args, kwargs, output):
             end_ns = now_ns()
@@ -219,7 +260,7 @@ class HookCapture:
 
             if proj is not None and self._capture_attention:
                 self._emit_attention(name, proj, layer_idx, output, begin_ns, end_ns, corr)
-            elif layer_idx >= 0 and proj is None:
+            elif is_block:
                 self._q.put(Event(
                     kind=Kind.LAYER_END,
                     timestamp_ns=end_ns,

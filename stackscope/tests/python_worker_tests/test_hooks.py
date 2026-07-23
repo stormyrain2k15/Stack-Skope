@@ -17,6 +17,28 @@ def test_is_attention_projection():
     assert is_attention_projection("model.layers.0.mlp.gate_proj")     is None
 
 
+def test_is_transformer_block_only_matches_block_itself():
+    """Regression: ``model.layers.0.mlp`` used to be treated as a block
+    because it shared the same inferred layer index. Only paths whose
+    LAST two segments are ``<container>.<int>`` are the block."""
+    from stackscope_worker.hooks import is_transformer_block
+    assert is_transformer_block("model.layers.0")     is True
+    assert is_transformer_block("model.layers.11")    is True
+    assert is_transformer_block("transformer.h.0")    is True
+    assert is_transformer_block("blocks.5")           is True
+    # Descendants are NOT blocks
+    assert is_transformer_block("model.layers.0.mlp")           is False
+    assert is_transformer_block("model.layers.0.self_attn")     is False
+    assert is_transformer_block("model.layers.0.self_attn.q_proj") is False
+    # Containers themselves are NOT blocks
+    assert is_transformer_block("model.layers")       is False
+    assert is_transformer_block("transformer.h")      is False
+    # Unrelated names
+    assert is_transformer_block("model.embed_tokens") is False
+    assert is_transformer_block("")                    is False
+    assert is_transformer_block("lm_head")             is False
+
+
 def test_hook_capture_emits_token_and_layer_events(torch_module):
     """Build a tiny transformer-like module tree and drive it through
     a single forward pass. We should observe TOKEN_BEGIN, LAYER_BEGIN,

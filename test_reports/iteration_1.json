@@ -1,0 +1,36 @@
+{
+  "summary": "Verified StackScope Python worker bug fix: LAYER_BEGIN over-count in HookCapture. Ran full pytest suite for tests/python_worker_tests — 7 passed, 1 skipped, 0 failed. The two targeted tests (test_hook_capture_emits_token_and_layer_events and test_is_transformer_block_only_matches_block_itself) both PASS. The fix in hooks.py (adding is_transformer_block() and gating LAYER_BEGIN/LAYER_END on it) is correct and complete for the reported bug. The 4th acceptance criterion (ruff clean on the worker source) FAILS with 36 findings, but ALL findings are pre-existing style issues in files unrelated to this fix (and pre-existing lines in hooks.py that the fix did not touch).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "ruff/src", "issue": "ruff check src reports 36 findings across anomaly.py (5x E701), attention_capture.py (2x F401 unused imports + 2x E701), grpc_service.py (5x F401 + ~14x E701/E702), hooks.py (6x E701 in is_attention_projection lines 118-123). NONE of these are caused by the LAYER_BEGIN bug fix — the new is_transformer_block() function and all modified lines (attach, _make_pre_hook, _make_post_hook) are ruff-clean. The pre-existing E701s in is_attention_projection (single-line `if X: return Y`) and F401 unused imports were already there before the fix. Acceptance criterion #4 ('ruff clean, no findings') is not met, but this is a repo-wide pre-existing hygiene issue, not a regression."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/stackscope/tests/python_worker_tests/test_hooks.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional (not blocking the bug fix): to satisfy the 'ruff clean' acceptance criterion, either (a) refactor pre-existing `if X: return Y` one-liners in hooks.py (lines 118-123, is_attention_projection), anomaly.py, attention_capture.py, grpc_service.py into two-line form and drop unused imports (math, typing.Optional, time, concurrent.futures, asyncio, argparse) — OR (b) narrow tool.ruff config in pyproject.toml to ignore E701/E702 if the compact style is intentional. Neither is required for the primary bug fix to be considered correct."
+  ],
+  "critical_code_review_comments": [
+    "Fix is correct and minimal: is_transformer_block() only returns True when the last two dotted segments are `<container>.<int>` — this correctly excludes descendants like `model.layers.0.mlp` that share the same infer_layer_index. Gating LAYER_BEGIN/END on is_block instead of `(layer_idx >= 0 and proj is None)` fixes the 3->6 double-count for a 3-block TinyModel.",
+    "Docstrings on infer_layer_index and is_transformer_block clearly explain the distinction and why both functions coexist — good future-maintainer signal.",
+    "The _current_layer_stack pop guard (`if self._current_layer_stack and self._current_layer_stack[-1] == layer_idx`) is defensive but assumes blocks nest lexically; fine for the flat `layers.<N>` case.",
+    "Pre-existing (not part of this fix): is_attention_projection lines 118-123 use `if X: return Y` one-liners — trips ruff E701. Cosmetic only; behavior is correct.",
+    "Pre-existing (not part of this fix): grpc_service.py and attention_capture.py have unused imports (asyncio, argparse, concurrent.futures, math, typing.Optional, time) — dead code, safe to remove."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "N/A",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Bug fix verified. Run `cd /app/stackscope && STACKSCOPE_SKIP_HF_TESTS=1 PYTHONPATH=workers/inference_worker_py/src python3 -m pytest tests/python_worker_tests -q` to re-verify — expect 7 passed, 1 skipped. The HF network test test_end_to_end_on_tiny_gpt2 is intentionally skipped via STACKSCOPE_SKIP_HF_TESTS=1 (no HF hub access in container). Ruff hygiene issues in worker src are pre-existing and NOT introduced by this fix; do not attribute them to this iteration.",
+  "rca_of_the_issue": "Original bug: HookCapture emitted 6 LAYER_BEGIN events for a 3-layer TinyModel because both `model.layers.<N>` (the block) AND `model.layers.<N>.mlp` (leaf) triggered LAYER_BEGIN — the old gate `(layer_idx >= 0 and proj is None)` matched both since infer_layer_index() intentionally propagates the block index to all descendants (needed for tagging activations/attention with their layer). Fix: introduce is_transformer_block(name) that returns True only when the LAST two dotted segments are `<container>.<int>`, and gate LAYER_BEGIN/LAYER_END on that flag. Reproduction: TinyModel(n_layers=3), attach HookCapture(capture_attention=True, capture_activations=False), run forward, count LAYER_BEGIN. Before fix: 6. After fix: 3. Verified via test_hook_capture_emits_token_and_layer_events (currently PASSING) which asserts exactly ==3 for both LAYER_BEGIN and LAYER_END, plus >=9 ATTENTION_QKV and ==3 ATTENTION_OUTPUT."
+}
