@@ -1,6 +1,7 @@
 <UserControl x:Class="StackScope.Desktop.Views.QuantizationDiffView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:beh="clr-namespace:StackScope.Desktop.Behaviors"
              Background="{StaticResource Brush.Surface.Panel}">
   <ScrollViewer>
     <StackPanel Margin="16">
@@ -45,7 +46,7 @@
         <TextBlock Style="{StaticResource Text.Muted}" Margin="20,0,0,0"><Run Text="Total energy Δ: "/><Run Text="{Binding TotalEnergyDelta, StringFormat=F3}"/></TextBlock>
       </StackPanel>
 
-      <ListView ItemsSource="{Binding Rows}" Height="360" Margin="0,8"
+      <ListView beh:SelectionDrives.IsEnabled="True" ItemsSource="{Binding Rows}" Height="360" Margin="0,8"
                 AutomationProperties.Name="Per-layer quantization shift">
         <ListView.View>
           <GridView>

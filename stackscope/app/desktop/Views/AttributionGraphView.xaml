@@ -1,6 +1,7 @@
 <UserControl x:Class="StackScope.Desktop.Views.AttributionGraphView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:beh="clr-namespace:StackScope.Desktop.Behaviors"
              Background="{StaticResource Brush.Surface.Panel}">
   <ScrollViewer>
     <StackPanel Margin="16">
@@ -26,8 +27,29 @@
       </StackPanel>
 
       <TextBlock Text="Nodes" Style="{StaticResource Text.Header}" Margin="0,12,0,4"/>
-      <ListView ItemsSource="{Binding Nodes}" Height="220"
+      <ListView beh:SelectionDrives.IsEnabled="True" ItemsSource="{Binding Nodes}" Height="220"
+                x:Name="NodeList"
+                SelectionChanged="OnNodeSelected"
                 AutomationProperties.Name="Attribution nodes">
+        <ListView.ItemContainerStyle>
+          <Style TargetType="ListViewItem">
+            <Setter Property="ToolTip">
+              <Setter.Value>
+                <StackPanel>
+                  <TextBlock FontWeight="Bold">
+                    <Run Text="Event "/><Run Text="{Binding EventId}"/>
+                  </TextBlock>
+                  <TextBlock>
+                    <Run Text="Layer "/><Run Text="{Binding Layer}"/>
+                    <Run Text="  Head "/><Run Text="{Binding Head}"/>
+                    <Run Text="  "/><Run Text="{Binding Kind}"/>
+                  </TextBlock>
+                  <TextBlock Text="{Binding Label}"/>
+                </StackPanel>
+              </Setter.Value>
+            </Setter>
+          </Style>
+        </ListView.ItemContainerStyle>
         <ListView.View>
           <GridView>
             <GridViewColumn Header="Event"  Width="80"  DisplayMemberBinding="{Binding EventId}"/>
@@ -40,7 +62,7 @@
       </ListView>
 
       <TextBlock Text="Edges" Style="{StaticResource Text.Header}" Margin="0,12,0,4"/>
-      <ListView ItemsSource="{Binding Edges}" Height="200"
+      <ListView beh:SelectionDrives.IsEnabled="True" ItemsSource="{Binding Edges}" Height="200"
                 AutomationProperties.Name="Attribution edges">
         <ListView.View>
           <GridView>

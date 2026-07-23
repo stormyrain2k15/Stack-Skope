@@ -21,11 +21,33 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border Height="18" Margin="1,1,1,1"
-                                Background="{StaticResource Brush.Surface.Elevated}"
+                                Background="{Binding Kind, Converter={StaticResource KindBrush}}"
                                 BorderBrush="{StaticResource Brush.Border.Subtle}"
-                                BorderThickness="1">
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                MouseLeftButtonDown="OnEventBarClicked"
+                                Tag="{Binding}"
+                                AutomationProperties.Name="Trace marker bar — click to inspect this event">
+                            <Border.ToolTip>
+                                <StackPanel>
+                                    <TextBlock FontWeight="Bold">
+                                        <Run Text="{Binding Kind}"/>
+                                        <Run Text=" · event "/>
+                                        <Run Text="{Binding EventId}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Token "/><Run Text="{Binding TokenIndex}"/>
+                                        <Run Text="  Layer "/><Run Text="{Binding LayerIndex}"/>
+                                        <Run Text="  Head "/><Run Text="{Binding HeadIndex}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="ts_ns="/><Run Text="{Binding TimestampNs}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border.ToolTip>
                             <TextBlock Style="{StaticResource Text.Mono}"
                                        Margin="6,0,0,0" VerticalAlignment="Center"
+                                       Foreground="Black"
                                        Text="{Binding Kind, StringFormat='{}{0}'}"/>
                         </Border>
                     </DataTemplate>

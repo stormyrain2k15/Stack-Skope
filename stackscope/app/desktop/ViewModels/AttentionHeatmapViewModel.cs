@@ -63,10 +63,36 @@ public sealed partial class AttentionHeatmapViewModel : ObservableObject
             float std  = BinaryPrimitives.ReadSingleLittleEndian(p[8..]);
             float ent  = BinaryPrimitives.ReadSingleLittleEndian(p[12..]);
             float maxp = BinaryPrimitives.ReadSingleLittleEndian(p[16..]);
-            HeadRows.Add(new HeadRow($"H{head}", ent,
-                RenderStrip(head, mean, std, maxp)));
+            HeadRows.Add(new HeadRow(
+                Label: $"H{head}",
+                Entropy: ent,
+                Image: RenderStrip(head, mean, std, maxp),
+                Head: head,
+                Layer: LayerIndex,
+                Token: TokenIndex,
+                Mean: mean,
+                Std: std,
+                MaxProb: maxp,
+                EventId: e.EventId));
         }
         StatusMessage = $"L{LayerIndex} · T{TokenIndex} — {HeadRows.Count} heads.";
+    }
+
+    /// <summary>Called by the view when the user clicks a heatmap strip.
+    /// Fraction is the horizontal position 0..1 within the strip, which
+    /// maps to the estimated source-token index attended to by that
+    /// pixel. Updates the global selection so every other view follows.
+    /// </summary>
+    public void PickCell(HeadRow row, double fraction)
+    {
+        var sourceToken = (int)Math.Round(fraction * Math.Max(1, TokenIndex));
+        SelectionState.Current.HeadIndex   = row.Head;
+        SelectionState.Current.LayerIndex  = row.Layer;
+        SelectionState.Current.TokenIndex  = sourceToken;
+        SelectionState.Current.EventId     = row.EventId;
+        SelectionState.Current.Kind        = EventKind.AttentionScores;
+        StatusMessage = $"Selected H{row.Head} L{row.Layer} src-token≈{sourceToken}"
+                        + $" · max_prob={row.MaxProb:F3} · entropy={row.Entropy:F3}";
     }
 
     private static BitmapSource RenderStrip(int head, float mean, float std, float maxp)
@@ -88,8 +114,23 @@ public sealed partial class AttentionHeatmapViewModel : ObservableObject
         return bmp;
     }
 
-    public sealed record HeadRow(string Label, float Entropy, BitmapSource Image)
+    public sealed record HeadRow(
+        string Label,
+        float Entropy,
+        BitmapSource Image,
+        int Head,
+        int Layer,
+        int Token,
+        float Mean,
+        float Std,
+        float MaxProb,
+        ulong EventId)
     {
         public int PixelWidth => Image.PixelWidth;
+        public string Tooltip =>
+            $"Head {Head} · Layer {Layer} · Token {Token}\n" +
+            $"mean={Mean:F4}  std={Std:F4}\n" +
+            $"entropy={Entropy:F4}  max_prob={MaxProb:F4}\n" +
+            $"event id={EventId}";
     }
 }

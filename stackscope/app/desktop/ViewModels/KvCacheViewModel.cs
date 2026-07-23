@@ -85,11 +85,26 @@ public sealed partial class KvCacheViewModel : ObservableObject
         {
             double frac = maxPeak == 0 ? 0.0 : (double)kv.Value / maxPeak;
             LayerRows.Add(new LayerRow(
+                Layer: kv.Key,
                 LayerLabel: $"L{kv.Key}",
+                PeakBytes: kv.Value,
                 BarWidth: Math.Max(1, frac * 400.0),
                 BytesLabel: $"{kv.Value:N0} B"));
         }
     }
 
-    public sealed record LayerRow(string LayerLabel, double BarWidth, string BytesLabel);
+    /// <summary>Click handler surface: called by the view when a layer
+    /// bar is clicked. Updates SelectionState so all other views follow.</summary>
+    public void PickLayer(LayerRow row)
+    {
+        SelectionState.Current.LayerIndex = row.Layer;
+    }
+
+    public sealed record LayerRow(
+        int Layer, string LayerLabel, long PeakBytes,
+        double BarWidth, string BytesLabel)
+    {
+        public string Tooltip =>
+            $"Layer {Layer}\nPeak KV-cache: {PeakBytes:N0} bytes ({PeakBytes / 1024.0 / 1024.0:F2} MiB)";
+    }
 }

@@ -1,6 +1,7 @@
 <UserControl x:Class="StackScope.Desktop.Views.HealthDashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:beh="clr-namespace:StackScope.Desktop.Behaviors"
              Background="{StaticResource Brush.Surface.Panel}">
   <ScrollViewer>
     <StackPanel Margin="16">
@@ -25,7 +26,7 @@
         <TextBlock Style="{StaticResource Text.Muted}" Margin="20,0,0,0"><Run Text="Anomalies: "/><Run Text="{Binding TotalAnomalies}"/></TextBlock>
       </StackPanel>
 
-      <ListView ItemsSource="{Binding Layers}" Height="260" Margin="0,8"
+      <ListView beh:SelectionDrives.IsEnabled="True" ItemsSource="{Binding Layers}" Height="260" Margin="0,8"
                 AutomationProperties.Name="Per-layer health">
         <ListView.View>
           <GridView>

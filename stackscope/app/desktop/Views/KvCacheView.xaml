@@ -20,14 +20,19 @@
         <ItemsControl ItemsSource="{Binding LayerRows}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel Orientation="Horizontal" Margin="8,2">
-                        <TextBlock Text="{Binding LayerLabel}" Style="{StaticResource Text.Mono}"
-                                   Width="60"/>
-                        <Rectangle Fill="{StaticResource Brush.Accent.Sage}"
-                                   Width="{Binding BarWidth}" Height="14"/>
-                        <TextBlock Text="{Binding BytesLabel}" Style="{StaticResource Text.Muted}"
-                                   Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <Border Background="Transparent" Padding="0" ToolTip="{Binding Tooltip}"
+                            Cursor="Hand" MouseLeftButtonDown="OnLayerBarClicked"
+                            Tag="{Binding}">
+                        <StackPanel Orientation="Horizontal" Margin="8,2">
+                            <TextBlock Text="{Binding LayerLabel}" Style="{StaticResource Text.Mono}"
+                                       Width="60"/>
+                            <Rectangle Fill="{StaticResource Brush.Accent.Sage}"
+                                       Width="{Binding BarWidth}" Height="14"
+                                       AutomationProperties.Name="KV-cache bar for this layer"/>
+                            <TextBlock Text="{Binding BytesLabel}" Style="{StaticResource Text.Muted}"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

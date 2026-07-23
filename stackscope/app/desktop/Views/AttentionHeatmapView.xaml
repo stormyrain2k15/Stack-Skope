@@ -23,13 +23,21 @@
         <ItemsControl ItemsSource="{Binding HeadRows}" x:Name="Rows">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel Orientation="Horizontal" Margin="8,2">
+                    <StackPanel Orientation="Horizontal" Margin="8,2"
+                                ToolTip="{Binding Tooltip}">
                         <TextBlock Text="{Binding Label}" Style="{StaticResource Text.Mono}"
                                    Width="60" VerticalAlignment="Center"/>
                         <Image Source="{Binding Image}" Height="16" Stretch="Fill"
                                RenderOptions.BitmapScalingMode="NearestNeighbor"
-                               Width="{Binding PixelWidth}"/>
+                               Width="{Binding PixelWidth}"
+                               Cursor="Hand"
+                               MouseLeftButtonDown="OnHeadStripClicked"
+                               Tag="{Binding}"
+                               AutomationProperties.Name="Attention heatmap strip — click a column to pick a source token"/>
                         <TextBlock Text="{Binding Entropy, StringFormat='H={0:F3}'}"
+                                   Style="{StaticResource Text.Muted}"
+                                   VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <TextBlock Text="{Binding MaxProb, StringFormat='max_p={0:F3}'}"
                                    Style="{StaticResource Text.Muted}"
                                    VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
