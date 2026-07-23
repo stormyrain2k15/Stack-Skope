@@ -13,6 +13,8 @@ public sealed class ProjectService
     public string ModelsCacheDir => Path.Combine(RootDir, "models");
     public string LayoutsDir => Path.Combine(RootDir, "layouts");
 
+    private readonly Dictionary<string, (string Device, bool Verified)> _resolvedByHandle = new();
+
     public ProjectService(string rootDir)
     {
         RootDir = rootDir;
@@ -20,6 +22,24 @@ public sealed class ProjectService
         Directory.CreateDirectory(ModelsCacheDir);
         Directory.CreateDirectory(LayoutsDir);
     }
+
+    /// <summary>
+    /// Called by <see cref="CoordinatorService.LoadModel"/> so that
+    /// <see cref="CoordinatorService.RunInference"/> can look up the
+    /// worker's reported placement (and verified flag) when picking
+    /// the driver-capture backend. Without this the RunInference path
+    /// would have to re-query capabilities every time.
+    /// </summary>
+    public void RememberResolvedDevice(string modelHandle, string device, bool verified)
+    {
+        _resolvedByHandle[modelHandle] = (device, verified);
+    }
+
+    public string? LookupResolvedDevice(string modelHandle)
+        => _resolvedByHandle.TryGetValue(modelHandle, out var r) ? r.Device : null;
+
+    public bool LookupResolvedDeviceVerified(string modelHandle)
+        => _resolvedByHandle.TryGetValue(modelHandle, out var r) && r.Verified;
 
     public EventStore OpenOrCreateStore(string transactionId)
         => new EventStore(transactionId, CapturesDir);

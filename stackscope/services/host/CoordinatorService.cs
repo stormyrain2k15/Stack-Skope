@@ -156,7 +156,7 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
             request.ModelPath, request.Format, request.Device,
             request.TrustRemoteCode, request.NCtx), context.CancellationToken);
 
-        return new CoordLoadModelReply
+        var reply = new CoordLoadModelReply
         {
             ModelHandle = info.ModelHandle,
             Architecture = info.Architecture,
@@ -168,6 +168,9 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
             ResolvedDevice = info.ResolvedDevice ?? "",
             ResolvedDeviceVerified = info.ResolvedDeviceVerified,
         };
+        _project.RememberResolvedDevice(info.ModelHandle,
+            info.ResolvedDevice ?? "", info.ResolvedDeviceVerified);
+        return reply;
     }
 
     public override async Task RunInference(
@@ -182,6 +185,27 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         store.Index.SetMeta("started_ns",
             System.Diagnostics.Stopwatch.GetTimestamp().ToString());
         store.Index.SetMeta("completed", "false");
+
+        // Attach the correct driver-capture backend based on where the
+        // model actually landed. Without this the ResolvedDevice field
+        // is display-only; with it, hip:0 picks rocprofiler, cuda:0
+        // picks CUPTI, vulkan:0 picks Vulkan debug-utils, cpu picks the
+        // CPU sampler. Falls back to CPU capture on unverified
+        // placement so nobody stares at an empty CUPTI trace.
+        var resolvedDevice   = _project.LookupResolvedDevice(request.ModelHandle) ?? "cpu";
+        var resolvedVerified = _project.LookupResolvedDeviceVerified(request.ModelHandle);
+        var caps             = await adapter.GetCapabilitiesAsync(context.CancellationToken);
+        var (driverBackend, driverDesc) = CaptureBackendFactory.Create(
+            resolvedDevice, resolvedVerified, caps.WorkerKind);
+        store.Index.SetMeta("resolved_device", resolvedDevice);
+        store.Index.SetMeta("resolved_device_verified", resolvedVerified ? "true" : "false");
+        store.Index.SetMeta("capture_backend", driverDesc);
+
+        await using var pipeline = new StackScope.Core.Capture.CapturePipeline(store);
+        pipeline.Register(driverBackend);
+        await pipeline.StartAsync(context.CancellationToken);
+        _log.LogInformation("Capture pipeline attached: {Backend} for txn {Txid}",
+            driverDesc, txid);
 
         var args = new RunInferenceArgs(
             txid, request.ModelHandle, request.Prompt,
@@ -219,6 +243,7 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         }
         finally
         {
+            await pipeline.StopAsync(context.CancellationToken);
             store.Flush();
             store.Index.SetMeta("completed", err is null ? "true" : "false");
             if (err is not null) store.Index.SetMeta("error", err);
