@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  StackScope MSI installer. WiX v4 (Msi package). Builds on Windows:
+    dotnet tool install --global wix
+    wix build packaging/wix/Product.wxs -o build/StackScope.msi
+  This produces an unsigned MSI. Code signing is intentionally NOT
+  wired here — no cert issued yet. See DEFERRED.md.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="StackScope"
+      Manufacturer="StackScope"
+      Version="0.1.0.0"
+      UpgradeCode="D9F5C7B8-3E5A-4E7B-8B4F-8B1D9F7E4B21"
+      Compressed="yes"
+      InstallerVersion="500"
+      Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer StackScope is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="Main" Title="StackScope" Level="1">
+      <ComponentGroupRef Id="DesktopFiles" />
+      <ComponentGroupRef Id="CoordinatorFiles" />
+      <ComponentGroupRef Id="WorkerFiles" />
+      <ComponentGroupRef Id="ProtoFiles" />
+      <ComponentGroupRef Id="ShortcutsGroup" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLDIR" Name="StackScope">
+        <Directory Id="APP_DIR" Name="app" />
+        <Directory Id="COORD_DIR" Name="coordinator" />
+        <Directory Id="WORKER_DIR" Name="worker" />
+        <Directory Id="PROTO_DIR" Name="proto" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartMenuFolder" Name="StackScope" />
+    </StandardDirectory>
+
+    <!-- Payload harvesting: the .msbuild bindings below use HeatDirectory-style
+         wildcards. In practice, MSBuild/wix harvests these at build time from
+         the Release output directories. -->
+    <ComponentGroup Id="DesktopFiles" Directory="APP_DIR">
+      <Files Include="..\..\app\desktop\bin\Release\net8.0-windows\**" />
+    </ComponentGroup>
+    <ComponentGroup Id="CoordinatorFiles" Directory="COORD_DIR">
+      <Files Include="..\..\services\host\bin\Release\net8.0\**" />
+    </ComponentGroup>
+    <ComponentGroup Id="WorkerFiles" Directory="WORKER_DIR">
+      <!-- The Python worker is delivered as source + a bootstrap script
+           because Python distribution is site-managed. The Windows box
+           picks its interpreter. -->
+      <Files Include="..\..\workers\inference_worker_py\**" />
+    </ComponentGroup>
+    <ComponentGroup Id="ProtoFiles" Directory="PROTO_DIR">
+      <Files Include="..\..\proto\*.proto" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="ShortcutsGroup" Directory="StartMenuFolder">
+      <Component Id="StackScopeShortcut" Guid="C4A9F0B1-2C3D-4E5F-6789-0123456789AB">
+        <Shortcut Id="StackScopeAppShortcut"
+                  Name="StackScope"
+                  Description="Transformer inference debugger."
+                  Target="[APP_DIR]StackScope.exe"
+                  WorkingDirectory="APP_DIR" />
+        <RemoveFolder Id="StartMenuFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\StackScope"
+                       Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir"
+                xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui" />
+      <UIRef Id="WixUI_ErrorProgressText" />
+    </UI>
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+  </Package>
+</Wix>

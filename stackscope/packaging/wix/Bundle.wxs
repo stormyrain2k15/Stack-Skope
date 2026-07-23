@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  StackScope Bundle — chains the runtime prerequisites the app needs
+  before installing the MSI. WiX v4 bundle. Chained items:
+    - .NET Desktop Runtime 8.x (WPF prereq)
+    - VC++ 2015-2022 x64 redistributable (native driver P/Invokes)
+  CUDA / ROCm / Vulkan SDKs are deliberately NOT bundled — those are
+  fat, user-specific installs. The app degrades gracefully if a runtime
+  is missing (each driver backend probes at Start and no-ops if the
+  DLL is not resolvable). See adapters/Drivers/*.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle
+      Name="StackScope"
+      Manufacturer="StackScope"
+      Version="0.1.0.0"
+      UpgradeCode="A3E5B2C1-4D6E-4F7A-8B9C-0D1E2F3A4B5C">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+          LicenseFile="License.rtf"
+          Theme="hyperlinkLicense" />
+    </BootstrapperApplication>
+
+    <Chain>
+      <!-- .NET Desktop Runtime 8. Version selected at build time by the
+           user's bundle vars; download URL is the Microsoft-published
+           permalink pattern. Kept as ExePackage so the bundle stays
+           small and only downloads if the runtime is absent. -->
+      <ExePackage
+          Id="DotNetDesktopRuntime"
+          DisplayName=".NET Desktop Runtime 8.x"
+          DetectCondition="DotNetDesktopRuntime80Installed"
+          InstallCommand="/install /quiet /norestart"
+          RepairCommand="/repair /quiet /norestart"
+          UninstallCommand="/uninstall /quiet /norestart"
+          PerMachine="yes"
+          Permanent="yes"
+          Vital="yes"
+          DownloadUrl="https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe" />
+
+      <!-- The main StackScope MSI. Wildcard reference — MSBuild resolves
+           the artifact path at build time. -->
+      <MsiPackage
+          Id="StackScopeMsi"
+          SourceFile="..\..\build\StackScope.msi"
+          DisplayInternalUI="yes"
+          Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

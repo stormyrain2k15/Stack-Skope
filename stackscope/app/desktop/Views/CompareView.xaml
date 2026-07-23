@@ -2,54 +2,113 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{StaticResource Brush.Surface.Panel}">
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <TextBlock Text="Compare Transactions" Style="{StaticResource Text.Header}"
-                   FontSize="{StaticResource Type.Display}" Margin="0,0,0,16"/>
-        <Grid Grid.Row="1">
+    <DockPanel LastChildFill="True" Margin="16">
+        <TextBlock DockPanel.Dock="Top" Text="Compare / Diff Mode"
+                   Style="{StaticResource Text.Header}"
+                   FontSize="{StaticResource Type.Display}"
+                   Margin="0,0,0,12"/>
+
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0">
-                <TextBlock Text="Left transaction" Style="{StaticResource Text.Muted}"/>
+            <StackPanel Margin="0,0,8,0">
+                <TextBlock Text="Baseline transaction (left)" Style="{StaticResource Text.Muted}"/>
                 <TextBox Text="{Binding LeftTransactionId, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="Left transaction id"/>
+                         AutomationProperties.Name="Baseline transaction id"/>
             </StackPanel>
-            <TextBlock Grid.Column="1" Text="  ↔  " VerticalAlignment="Bottom"
-                       Style="{StaticResource Text.Muted}" Margin="16,0"/>
-            <StackPanel Grid.Column="2">
-                <TextBlock Text="Right transaction" Style="{StaticResource Text.Muted}"/>
+            <StackPanel Grid.Column="1" Margin="8,0">
+                <TextBlock Text="Candidate transaction (right)" Style="{StaticResource Text.Muted}"/>
                 <TextBox Text="{Binding RightTransactionId, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="Right transaction id"/>
+                         AutomationProperties.Name="Candidate transaction id"/>
             </StackPanel>
+            <StackPanel Grid.Column="2" Margin="8,0" Width="96">
+                <TextBlock Text="σ threshold" Style="{StaticResource Text.Muted}"/>
+                <TextBox Text="{Binding SigmaThreshold, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Sigma threshold"/>
+            </StackPanel>
+            <Button Grid.Column="3" Content="Run Diff" Command="{Binding RunCommand}"
+                    VerticalAlignment="Bottom" Margin="12,0,0,0" Padding="16,4"
+                    AutomationProperties.Name="Run diff analysis"/>
+            <Button Grid.Column="4" Content="Clear" Command="{Binding ClearRankingCommand}"
+                    VerticalAlignment="Bottom" Margin="8,0,0,0" Padding="12,4"
+                    AutomationProperties.Name="Clear diff ranking"/>
         </Grid>
-        <Grid Grid.Row="2" Margin="0,16,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel>
-                <TextBlock Text="Only in Left" Style="{StaticResource Text.Muted}"/>
-                <TextBlock Text="{Binding OnlyInLeftCount, StringFormat={}{0:N0}}"
-                           Style="{StaticResource Text.Body}"
-                           FontSize="{StaticResource Type.Display}"/>
+
+        <Border DockPanel.Dock="Top" Padding="8,4"
+                Background="{StaticResource Brush.Surface.Elevated}"
+                BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1"
+                Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <ProgressBar IsIndeterminate="{Binding IsBusy}" Width="80" Height="4"
+                             Foreground="{StaticResource Brush.Accent.Cyan}"
+                             Background="Transparent" Margin="0,0,12,0"/>
+                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Text.Muted}"/>
             </StackPanel>
-            <StackPanel Grid.Column="1">
-                <TextBlock Text="In Both" Style="{StaticResource Text.Muted}"/>
-                <TextBlock Text="{Binding InBothCount, StringFormat={}{0:N0}}"
-                           Style="{StaticResource Text.Body}"
-                           FontSize="{StaticResource Type.Display}"/>
-            </StackPanel>
-            <StackPanel Grid.Column="2">
-                <TextBlock Text="Only in Right" Style="{StaticResource Text.Muted}"/>
-                <TextBlock Text="{Binding OnlyInRightCount, StringFormat={}{0:N0}}"
-                           Style="{StaticResource Text.Body}"
-                           FontSize="{StaticResource Type.Display}"/>
-            </StackPanel>
-        </Grid>
-    </Grid>
+        </Border>
+
+        <ListView ItemsSource="{Binding Ranking}"
+                  AutomationProperties.Name="Diff ranking table">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Rank" Width="50">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource Text.Mono}"
+                                           Text="{Binding
+                                                RelativeSource={RelativeSource
+                                                    AncestorType={x:Type ListViewItem}},
+                                                Converter={StaticResource Rank}}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Layer" Width="60" DisplayMemberBinding="{Binding Layer}"/>
+                    <GridViewColumn Header="Head"  Width="60" DisplayMemberBinding="{Binding Head}"/>
+                    <GridViewColumn Header="σ shift" Width="90"
+                                    DisplayMemberBinding="{Binding SigmaShift, StringFormat=F3}"/>
+                    <GridViewColumn Header="1 − cos" Width="90"
+                                    DisplayMemberBinding="{Binding CosineDistance, StringFormat=F3}"/>
+                    <GridViewColumn Header="ΔE ratio" Width="90"
+                                    DisplayMemberBinding="{Binding EnergyRatio, StringFormat=F3}"/>
+                    <GridViewColumn Header="μ L→R" Width="140">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource Text.Mono}">
+                                    <Run Text="{Binding MeanLeft, StringFormat=F3}"/>
+                                    <Run Text=" → " Foreground="{StaticResource Brush.Text.Muted}"/>
+                                    <Run Text="{Binding MeanRight, StringFormat=F3}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="σ L→R" Width="140">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource Text.Mono}">
+                                    <Run Text="{Binding StdLeft, StringFormat=F3}"/>
+                                    <Run Text=" → " Foreground="{StaticResource Brush.Text.Muted}"/>
+                                    <Run Text="{Binding StdRight, StringFormat=F3}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="N L / N R" Width="120">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource Text.Mono}">
+                                    <Run Text="{Binding SamplesLeft}"/>
+                                    <Run Text=" / " Foreground="{StaticResource Brush.Text.Muted}"/>
+                                    <Run Text="{Binding SamplesRight}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
 </UserControl>

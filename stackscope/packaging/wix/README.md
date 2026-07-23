@@ -1,16 +1,34 @@
 # packaging/wix/
 
-WiX installer scaffolding placeholder.
+Real WiX v4 installer pipeline. Produces:
+- `StackScope.msi` — the MSI installer, unsigned.
+- `StackScope-Setup.exe` — chained bundle installing the .NET Desktop
+  Runtime 8 prerequisite first (only if absent), then the MSI.
 
-**Status:** scaffolding only. The MSI installer pipeline is deferred
-this pass per project rule §38 ("no stubs"): shipping a WiX project
-that emits an unsigned, feature-incomplete MSI is worse than shipping
-nothing. When we ship the installer, this directory will grow:
+## Prereqs
 
-- `Product.wxs` — full component graph.
-- `Bundle.wxs` — bootstrapper covering CUDA/ROCm/Vulkan runtime detection.
-- `Build.targets` — MSBuild integration for CI.
-- `sign.ps1` — code-signing invocation (deferred until a cert is issued).
+```powershell
+dotnet tool install --global wix
+```
 
-For local Windows testing, run the app directly from
-`app/desktop/bin/Release/net8.0-windows/StackScope.exe`.
+## Build (from repo root)
+
+```powershell
+.\packaging\wix\build.ps1
+```
+
+Artifacts land in `build/`.
+
+## What's inside
+
+- `Product.wxs` — MSI: installs the WPF app, coordinator, Python worker,
+  proto contracts, and a Start-menu shortcut.
+- `Bundle.wxs` — chained bootstrapper: .NET Desktop Runtime 8 + MSI.
+- `License.rtf` — MIT license shown on the license page.
+- `build.ps1` — one-command driver.
+
+## Code signing
+
+Deliberately not wired. Signing requires an issued authenticode cert and
+should never be committed. When a cert is available, add a `signtool.exe`
+invocation to `build.ps1` after each `wix build` step.

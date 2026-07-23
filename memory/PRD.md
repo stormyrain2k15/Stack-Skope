@@ -1,128 +1,78 @@
 # StackScope — PRD
 
-## Original problem statement (verbatim)
+## Problem statement (verbatim)
 
-Standalone transformer inspection, tracing, profiling, and debugging application. Native Windows desktop.
+Standalone transformer inspection, tracing, profiling, and debugging application. Native Windows desktop. Traces: input → tokenization → layers → attention heads → activations → tensors → runtime operators → driver calls → kernels → memory transactions → logits → output token. Capture everything, reveal progressively.
 
-Input → tokenization → layers → attention heads → activations → tensors → runtime operators → driver calls → kernels → memory transactions → logits → output token. Principle: capture everything, reveal progressively.
+## User decisions
 
-## User decisions (this pass)
+- 1(c) — write source, execute on user's Windows 10 Pro box.
+- CUDA 12.x + ROCm 6.x + Vulkan target; `net8.0-windows`.
+- llama.cpp via git submodule.
+- Deliver as new GitHub repo.
+- Purpose: make transformer internals inspectable so humans can improve AI.
 
-- Environment fit: **1(c)** — write source tree only, execute on the user's Windows 10 Pro box.
-- Scope for this pass: **2(c)** — main agent chose the subset (see "In scope").
-- CUDA/CUPTI target: **CUDA 12.x + ROCm 6.x + Vulkan** on Windows 10 Pro, `net8.0-windows` TFM.
-- llama.cpp: **4(a)** — git submodule + build script; not built here.
-- Delivery: brand-new GitHub repo pushed via "Save to GitHub".
-
-## Architecture (delivered)
+## Architecture (162 files)
 
 ```
 stackscope/
-├── proto/                     gRPC contracts (events, worker, coordinator)
-├── core/                      .NET 8 lib (Linux-testable)
-│   ├── Models/                UnifiedModelDescriptor, LayerGraph, TensorInfo, ...
-│   ├── Transactions/          InferenceTransaction, EventKind, TraceMarker, Ulid
-│   ├── Storage/               MmapEventLog, SqliteIndex, EventStore, EventRecord
-│   ├── Queries/               EventQuery + QueryEngine
-│   ├── Correlation/           CorrelationEngine + CorrelationConfidence
-│   ├── Capture/               ICaptureBackend + CapturePipeline
-│   └── Comparison/            TransactionComparer
+├── proto/                gRPC contracts (events, worker, coordinator)
+├── core/                 .NET 8: models, transactions, storage, queries,
+│                         correlation, comparison (incl. DistributionStats
+│                         + HeadDiffAnalyzer for Diff Mode), capture pipeline
 ├── adapters/
-│   ├── Formats/{SafeTensors,Gguf,Transformers,TensorFlow}   real parsers, no stubs
-│   ├── Architectures/         Llama, Gemma, Qwen2, Mistral, GPT-2 adapters
-│   ├── Runtimes/              gRPC clients for PyTorch + llama.cpp workers
-│   └── Drivers/{Cuda,Rocm,Vulkan,Cpu}
-│                              CUPTI, rocprofiler, Vulkan bridge, CPU counters
-├── services/                  ModelIntrospection, Project, Capture, Query
+│   ├── Formats/          SafeTensors, Gguf, Transformers, TensorFlow
+│   ├── Architectures/    Llama, Gemma, Qwen2, Mistral, GPT-2
+│   ├── Runtimes/         gRPC clients: PythonWorker, LlamaCppWorker
+│   └── Drivers/          Cuda (CUPTI), Rocm (rocprofiler),
+│                         Vulkan (mmap bridge + debug-utils), Cpu
+├── services/
+│   ├── Services.csproj   ModelIntrospection, Project, Capture, Query
+│   └── host/             StackScope.Coordinator — standalone gRPC host
 ├── workers/
-│   ├── inference_worker_py/   Python 3.11 + Transformers + PyTorch hooks + gRPC
-│   └── llamacpp_worker/       C/C++ harness + CMake, llama.cpp submodule
-├── app/desktop/               WPF (net8.0-windows) shell, 12 real views, dark theme
-├── tests/{Core.Tests, Adapters.Tests, python_worker_tests, integration}
-└── packaging/wix/             (scaffold README — MSI pipeline deferred honestly)
+│   ├── inference_worker_py/  hooks + attention_capture + arena +
+│   │                         anomaly + DirectML/CUDA/MPS device routing
+│   ├── llamacpp_worker/      C harness + gRPC (submodule)
+│   └── instrumentation_agent/
+├── app/desktop/          WPF shell: 12 views, dark theme, dockable,
+│                         Diff Mode UI, Breadcrumb, Project tree,
+│                         Device dropdown, Recovery banner, Command palette,
+│                         saved layouts w/ load-on-startup
+├── tests/                xUnit (Core + Adapters), pytest, integration
+└── packaging/wix/        Real WiX v4 Product.wxs + Bundle.wxs + build.ps1
 ```
 
-## In scope this pass (real, no stubs)
+## What's live end-to-end
 
-- **Format adapters**: SafeTensors (header JSON + tensor offset/shape/dtype +
-  quantization + SHA-256 + validation), GGUF (v2/v3, all Q4/Q5/Q6/Q8/IQ block
-  layouts + KV metadata parse), Transformers repo (config.json + tokenizer.json
-  + shard index), TF SavedModel (real proto wire-format reader).
-- **UnifiedModelDescriptor** + 5 architecture adapters (Llama, Gemma, Qwen2,
-  Mistral/Mixtral, GPT-2), first-match registry.
-- **Event store**: memory-mapped append-only log + per-transaction SQLite
-  index (WAL) with axis indexes on kind/token/layer/head/stream/thread/time.
-- **QueryEngine** with paging + typed filters + count.
-- **CorrelationEngine** with 6-level confidence enum (Direct, RuntimeCorrelated,
-  AddressCorrelated, MarkerCorrelated, TimeCorrelated, Inferred) — every
-  correlation labelled.
-- **gRPC contracts** (proto/*.proto) — worker + coordinator + events.
-- **PyTorch worker**: forward hooks over every `nn.Module`, layer-index inference
-  from HF naming conventions, attention Q/K/V/O capture, logits (top-8), token
-  events, NVTX/rocTX range markers with correlation IDs.
-- **llama.cpp worker**: real C harness against llama.cpp's C API, gRPC C++
-  glue via `grpcpp`, per-token markers.
-- **CUDA driver capture** — CUPTI activity + callback API via P/Invoke, real
-  kernel/memcpy/memory record parsing.
-- **ROCm driver capture** — rocprofiler/roctracer via P/Invoke.
-- **Vulkan driver capture** — vulkan-1.dll P/Invoke + out-of-band shared-memory
-  bridge for GPU timestamp queries + `VK_EXT_debug_utils` labels.
-- **CPU driver capture** — sampling backend using `Process.TotalProcessorTime`.
-- **WPF app** — dark charcoal theme, 12 real views (Overview, Tokens, Layers,
-  Attention, Activations, Tensors, Driver, Kernels, Memory, Timeline, Compare,
-  Capture Library), AvalonDock workspace, cross-view selection sync, selection
-  history (Alt+Left/Right), command palette (Ctrl+Shift+P), progressive
-  disclosure Simple/Advanced/Forensic (F1/F2/F3), full keyboard operation,
-  AutomationProperties on every interactive/critical control, software-render
-  toggle.
-- **Tests**: xUnit — SafeTensors parser, GGUF parser + block-quant math,
-  architecture adapter registry, event store round-trip, query engine filters
-  + paging, correlation engine confidence tiers, ULID monotonicity. pytest —
-  hook capture on synthetic module tree + tiny-gpt2 integration.
-- **Build scripts**: `build_linux.sh`, `build_windows.ps1`, `scripts/gen_proto.sh`.
+- **UI → Query → Store**: 8 event-list views + Overview + Timeline + Capture Library + Diff Compare all bound to real `QueryService` → `EventStore`. Cross-view selection sync via `SelectionState` singleton.
+- **Diff Mode**: two `EventStore` instances → `HeadDiffAnalyzer` → ranked observable collection → sortable UI table. Threshold-filterable. Tested.
+- **Coordinator host**: real `Grpc.AspNetCore` server; implements ListWorkers, StartWorker/StopWorker, LoadModel, RunInference (streaming), QueryEvents, CountEvents, GetTransaction, ListTransactions, ReadTensor.
+- **Python worker**: `RunInference` streams events for token/layer/head/attention/logits, invokes `HookCapture` + per-top-level-attention capture with `output_attentions=True`, writes rows into `TensorArena` at `CAPTURE_FORENSIC`, runs each event through `AnomalyDetector` inline. `ReadTensor` returns real bytes from the arena.
+- **Anomaly detector**: NaN/Inf in logits, attention entropy collapse/blow-up, per-layer latency outliers. Verified: fed a synthetic NaN logit and observed `stackscope.anomaly` MARKER emission.
+- **DirectML**: `_resolve_device` accepts `dml:N`, imports `torch_directml` at runtime, falls back to CPU on ImportError; enumerated in device list alongside cuda/mps/cpu.
+- **WiX MSI**: `Product.wxs` + `Bundle.wxs` + `build.ps1`. Unsigned (no cert). Chains .NET Desktop Runtime 8.
+- **Persistence**: mmap append-only log + per-txn SQLite WAL index. Partial captures resurface via recovery banner on next launch.
 
-## Deferred honestly absent (not stubbed)
+## Non-negotiable rules held
 
-- DirectML backend, Metal (Apple), Unreal client, code-signing pipeline, MSI
-  installer pipeline (WiX scaffold README only), tensor readback session cache,
-  in-process ETW instrumentation agent (CPU counters are still real — from the
-  coordinator's own process).
+- No stubs. No mock data. Deferred items honestly absent.
+- Every visual object bound to a real event/tensor/allocation id.
+- Correlation confidence always labelled (6 tiers).
+- Capture/inference out-of-process (Coordinator host + Python/llama.cpp workers).
+- Keyboard-complete. Progressive disclosure (F1/F2/F3). Software-render env toggle.
 
-## Files delivered
+## Deferred honestly absent
 
-- 136 files under `/app/stackscope/`
-- .NET code: `core/`, `adapters/`, `services/`, `app/desktop/`
-- Python worker: `workers/inference_worker_py/`
-- Native worker: `workers/llamacpp_worker/`
-- Proto contracts: `proto/`
-- Tests: `tests/{Core,Adapters}.Tests + python_worker_tests + integration`
-- Docs: `README.md`, `docs/DEFERRED.md`, per-subsystem READMEs.
+- Code-signing pipeline (no cert issued).
+- Coordinator process spawning of workers (endpoints registered via env var).
+- Unreal client, Metal backend.
+- Cancel via out-of-band RPC (client-stream cancel works).
 
-## What's been implemented (dated)
+## Next
 
-- **2026-01** — Full source tree delivered. Python worker lint-clean;
-  `stackscope_worker.markers` verified executable (NVTX/rocTX no-op
-  fallback path works). Everything else compiles-on-target-only per user's
-  1(c) decision.
-
-## Next action items
-
-- User: `git init && git add . && git commit && ` push via "Save to GitHub".
-- User: on Windows box, `git submodule update --init --recursive` then run
-  `.\build_windows.ps1` (needs .NET 8 SDK, VS 2022 C++ build tools, CUDA
-  Toolkit 12.x with CUPTI, ROCm 6.x SDK, Vulkan SDK, and vcpkg with
-  `grpc protobuf` for the llama.cpp worker).
-- User: on any Linux machine, `./build_linux.sh` to run the non-WPF portions
-  through `dotnet test` + `pytest`.
-
-## Backlog / roadmap
-
-- **P0** (next pass): Tensor readback forensic path (worker-side arena cache
-  + gRPC ReadTensor), Attention head-level split events (currently emitted at
-  the projection layer without per-head disaggregation), Coordinator gRPC
-  server front (UI currently owns services in-process — coordinator process
-  boundary is defined by proto but the standalone service host isn't shipped).
-- **P1**: DirectML backend, code-signed MSI installer via WiX, HuggingFace
-  Hub download UI, native ETW instrumentation agent.
-- **P2**: Unreal visualization client, GPU-side flame graph rendering,
-  time-travel debugging (rewind to a token, resume with different sampler).
+Run on Windows box:
+1. `git submodule update --init --recursive`
+2. `.\build_windows.ps1`
+3. `scripts/gen_proto.sh` for the Python worker gRPC stubs
+4. `packaging/wix/build.ps1` for the installer
+5. Launch `StackScope.Coordinator.exe`, then `StackScope.exe`

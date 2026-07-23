@@ -23,6 +23,8 @@ public sealed partial class WorkspaceState : ObservableObject
     [ObservableProperty] private string? projectRoot;
     [ObservableProperty] private string? currentTransactionId;
     [ObservableProperty] private string? currentModelHandle;
+    [ObservableProperty] private string? selectedDevice;
+    [ObservableProperty] private string? recoveryBanner;
 
     /// <summary>Bindable helpers used by view visibility triggers.</summary>
     public bool ShowAdvanced => Disclosure >= DisclosureMode.Advanced;

@@ -1,7 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
+using AvalonDock.Layout.Serialization;
 using Microsoft.Win32;
 using StackScope.Adapters.Architectures;
 using StackScope.Desktop.State;
@@ -10,15 +10,11 @@ using StackScope.Services;
 
 namespace StackScope.Desktop;
 
-/// <summary>
-/// Application shell. Owns the top-level ViewModel graph and wires the
-/// menu/command surface to the services layer. No business logic lives
-/// here — this file only marshals user intent into service calls.
-/// </summary>
 public partial class MainWindow : Window
 {
     private ProjectService _project;
     private QueryService _query;
+    private ShellViewModel _shell;
 
     public MainWindow()
     {
@@ -31,41 +27,58 @@ public partial class MainWindow : Window
         _query   = new QueryService(_project);
         WorkspaceState.Current.ProjectRoot = projectRoot;
 
-        DataContext = new ShellViewModel(_project, _query);
+        _shell = new ShellViewModel(_project, _query);
+        DataContext = _shell;
 
-        SelectionState.Current.PropertyChanged += (_, __) => UpdateInspector();
-        UpdateInspector();
+        SelectionState.Current.PropertyChanged += (_, __) => _shell.RefreshInspectorFromSelection();
+        WorkspaceState.Current.PropertyChanged += (_, __) => _shell.NotifyWorkspaceChanged();
+        _shell.RefreshInspectorFromSelection();
+
+        Loaded += OnLoaded;
     }
 
-    private void UpdateInspector()
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (DataContext is ShellViewModel s)
-        {
-            s.InspectorEventId = SelectionState.Current.EventId?.ToString() ?? "—";
-            s.InspectorKind    = SelectionState.Current.Kind?.ToString() ?? "—";
-            s.InspectorToken   = SelectionState.Current.TokenIndex.ToString();
-            s.InspectorLayer   = SelectionState.Current.LayerIndex.ToString();
-            s.InspectorHead    = SelectionState.Current.HeadIndex.ToString();
-        }
+        TryLoadSavedLayout();
+        CheckForRecoverableCaptures();
     }
 
-    // ---------- Command handlers ----------------------------------------
+    private void TryLoadSavedLayout()
+    {
+        var path = Path.Combine(_project.LayoutsDir, "current.xml");
+        if (!File.Exists(path)) return;
+        try
+        {
+            using var reader = new StreamReader(path);
+            new XmlLayoutSerializer(Dock).Deserialize(reader);
+        }
+        catch (Exception ex) { StatusText.Text = $"Layout load failed: {ex.Message}"; }
+    }
+
+    private void CheckForRecoverableCaptures()
+    {
+        var partial = _project.ListTransactions().Where(t => !t.Completed).ToList();
+        if (partial.Count == 0) return;
+        var newest = partial[0];
+        WorkspaceState.Current.RecoveryBanner =
+            $"Found {partial.Count} partial capture(s). Newest: {newest.TransactionId} "
+            + (newest.Error is null ? "(no error recorded)" : $"— {newest.Error}");
+    }
+
+    private void OnDismissRecovery(object sender, RoutedEventArgs e)
+        => WorkspaceState.Current.RecoveryBanner = null;
 
     private void OnOpenProject(object sender, ExecutedRoutedEventArgs e)
     {
-        var dlg = new OpenFolderDialog
-        {
-            Title = "Open StackScope project folder",
-            InitialDirectory = _project.RootDir
-        };
-        if (dlg.ShowDialog() == true)
-        {
-            _project = new ProjectService(dlg.FolderName);
-            _query = new QueryService(_project);
-            WorkspaceState.Current.ProjectRoot = dlg.FolderName;
-            DataContext = new ShellViewModel(_project, _query);
-            StatusText.Text = $"Opened project: {dlg.FolderName}";
-        }
+        var dlg = new OpenFolderDialog { InitialDirectory = _project.RootDir };
+        if (dlg.ShowDialog() != true) return;
+        _project = new ProjectService(dlg.FolderName);
+        _query = new QueryService(_project);
+        WorkspaceState.Current.ProjectRoot = dlg.FolderName;
+        _shell = new ShellViewModel(_project, _query);
+        DataContext = _shell;
+        CheckForRecoverableCaptures();
+        StatusText.Text = $"Opened {dlg.FolderName}";
     }
 
     private void OnOpenModel(object sender, ExecutedRoutedEventArgs e)
@@ -78,17 +91,16 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() != true) return;
         try
         {
-            var introspect = new ModelIntrospectionService(new ArchitectureRegistry());
-            var descriptor = introspect.Introspect(dlg.FileName);
-            var s = (ShellViewModel)DataContext;
-            s.OverviewVm.ModelName    = descriptor.DisplayName;
-            s.OverviewVm.Architecture = descriptor.ArchitectureName;
-            s.OverviewVm.NLayers      = descriptor.Layers.NumLayers;
-            s.OverviewVm.NHeads       = descriptor.Layers.NumHeads;
-            s.OverviewVm.HiddenSize   = descriptor.Layers.HiddenSize;
-            s.OverviewVm.VocabSize    = descriptor.Tokenizer?.VocabSize ?? 0;
-            WorkspaceState.Current.CurrentModelHandle = descriptor.DisplayName;
-            StatusText.Text = $"Loaded {descriptor.DisplayName} ({descriptor.ArchitectureName}).";
+            var d = new ModelIntrospectionService(new ArchitectureRegistry()).Introspect(dlg.FileName);
+            var vm = _shell.OverviewVm;
+            vm.ModelName    = d.DisplayName;
+            vm.Architecture = d.ArchitectureName;
+            vm.NLayers      = d.Layers.NumLayers;
+            vm.NHeads       = d.Layers.NumHeads;
+            vm.HiddenSize   = d.Layers.HiddenSize;
+            vm.VocabSize    = d.Tokenizer?.VocabSize ?? 0;
+            WorkspaceState.Current.CurrentModelHandle = d.DisplayName;
+            StatusText.Text = $"Loaded {d.DisplayName} ({d.ArchitectureName})";
         }
         catch (Exception ex)
         {
@@ -97,46 +109,35 @@ public partial class MainWindow : Window
     }
 
     private void OnStartCapture(object sender, ExecutedRoutedEventArgs e)
-    {
-        StatusText.Text = "Capture start requested. Coordinator wiring belongs on the Windows box.";
-    }
-
+        => StatusText.Text = "Capture requires a running coordinator/worker. See docs/CAPTURE.md.";
     private void OnStopCapture(object sender, ExecutedRoutedEventArgs e)
-    {
-        StatusText.Text = "Capture stop requested.";
-    }
-
-    private void OnBackSelection(object sender, ExecutedRoutedEventArgs e)
-        => SelectionState.Current.GoBack();
-    private void OnForwardSelection(object sender, ExecutedRoutedEventArgs e)
-        => SelectionState.Current.GoForward();
-
-    private void OnDisclosureSimple(object sender, ExecutedRoutedEventArgs e)
-        => WorkspaceState.Current.Disclosure = DisclosureMode.Simple;
-    private void OnDisclosureAdvanced(object sender, ExecutedRoutedEventArgs e)
-        => WorkspaceState.Current.Disclosure = DisclosureMode.Advanced;
-    private void OnDisclosureForensic(object sender, ExecutedRoutedEventArgs e)
-        => WorkspaceState.Current.Disclosure = DisclosureMode.Forensic;
+        => StatusText.Text = "Capture stop.";
+    private void OnBackSelection(object sender, ExecutedRoutedEventArgs e) => SelectionState.Current.GoBack();
+    private void OnForwardSelection(object sender, ExecutedRoutedEventArgs e) => SelectionState.Current.GoForward();
+    private void OnDisclosureSimple(object sender, ExecutedRoutedEventArgs e)   => WorkspaceState.Current.Disclosure = DisclosureMode.Simple;
+    private void OnDisclosureAdvanced(object sender, ExecutedRoutedEventArgs e) => WorkspaceState.Current.Disclosure = DisclosureMode.Advanced;
+    private void OnDisclosureForensic(object sender, ExecutedRoutedEventArgs e) => WorkspaceState.Current.Disclosure = DisclosureMode.Forensic;
 
     private void OnOpenPalette(object sender, ExecutedRoutedEventArgs e)
-    {
-        var w = new Views.CommandPaletteWindow { Owner = this };
-        w.ShowDialog();
-    }
+        => new Views.CommandPaletteWindow { Owner = this }.ShowDialog();
 
     private void OnSaveLayout(object sender, ExecutedRoutedEventArgs e)
     {
         var path = Path.Combine(_project.LayoutsDir, "current.xml");
         using var writer = new StreamWriter(path);
-        new AvalonDock.Layout.Serialization.XmlLayoutSerializer(Dock).Serialize(writer);
-        StatusText.Text = $"Saved layout to {path}.";
+        new XmlLayoutSerializer(Dock).Serialize(writer);
+        StatusText.Text = $"Layout saved: {path}";
     }
 
     private void OnResetLayout(object sender, ExecutedRoutedEventArgs e)
     {
-        // Reload the built-in default layout — this preserves the XAML-declared arrangement.
-        // Users override with saved layouts via SaveLayout.
-        StatusText.Text = "Reset layout (default).";
+        var path = Path.Combine(_project.LayoutsDir, "current.xml");
+        if (File.Exists(path)) File.Delete(path);
+        var uri = new Uri("/StackScope;component/MainWindow.xaml", UriKind.Relative);
+        var freshWindow = (Window)Application.LoadComponent(uri);
+        var freshDock = ((MainWindow)freshWindow).Dock;
+        Dock.Layout = freshDock.Layout;
+        StatusText.Text = "Layout reset.";
     }
 
     private void OnExit(object sender, RoutedEventArgs e) => Close();

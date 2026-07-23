@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StackScope.Adapters.Drivers
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StackScope.Services", "services\StackScope.Services.csproj", "{66666666-6666-6666-6666-666666666666}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StackScope.Coordinator", "services\host\StackScope.Coordinator.csproj", "{66666666-6666-6666-6666-666666666667}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StackScope.Core.Tests", "tests\Core.Tests\StackScope.Core.Tests.csproj", "{77777777-7777-7777-7777-777777777771}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StackScope.Adapters.Tests", "tests\Adapters.Tests\StackScope.Adapters.Tests.csproj", "{77777777-7777-7777-7777-777777777772}"
@@ -88,6 +90,10 @@ Global
 		{66666666-6666-6666-6666-666666666666}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{66666666-6666-6666-6666-666666666666}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{66666666-6666-6666-6666-666666666666}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66666666-6666-6666-6666-666666666667}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66666666-6666-6666-6666-666666666667}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66666666-6666-6666-6666-666666666667}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66666666-6666-6666-6666-666666666667}.Release|Any CPU.Build.0 = Release|Any CPU
 		{77777777-7777-7777-7777-777777777771}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{77777777-7777-7777-7777-777777777771}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{77777777-7777-7777-7777-777777777771}.Release|Any CPU.ActiveCfg = Release|Any CPU
