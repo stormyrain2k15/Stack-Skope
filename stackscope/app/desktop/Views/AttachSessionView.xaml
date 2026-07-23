@@ -1,0 +1,30 @@
+<UserControl x:Class="StackScope.Desktop.Views.AttachSessionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <ScrollViewer>
+    <StackPanel Margin="16">
+      <TextBlock Text="Attach to a running Python" Style="{StaticResource Text.Header}"
+                 FontSize="{StaticResource Type.Display}" Margin="0,0,0,12"/>
+      <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap"
+                 Text="Debug a model that's already loaded in a notebook, training loop, or production server — without restarting it. Set an endpoint, copy the two-line snippet, paste it into your Python, then click Connect."/>
+
+      <TextBlock Text="Endpoint" Style="{StaticResource Text.Muted}" Margin="0,12,0,4"/>
+      <TextBox Text="{Binding Endpoint, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Attach endpoint"/>
+
+      <Border BorderThickness="1" BorderBrush="{StaticResource Brush.Border}"
+              Background="{StaticResource Brush.Surface.Elevated}" Padding="12" Margin="0,12">
+        <TextBox Text="{Binding Snippet, Mode=OneWay}" IsReadOnly="True"
+                 FontFamily="Consolas" MinHeight="120"
+                 AutomationProperties.Name="Attach snippet"/>
+      </Border>
+
+      <StackPanel Orientation="Horizontal">
+        <Button Content="Copy snippet" Command="{Binding CopySnippetCommand}" MinWidth="140"
+                AutomationProperties.Name="Copy attach snippet"/>
+      </StackPanel>
+      <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Muted}" Margin="0,8"/>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

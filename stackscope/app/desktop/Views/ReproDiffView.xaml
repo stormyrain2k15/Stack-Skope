@@ -1,0 +1,32 @@
+<UserControl x:Class="StackScope.Desktop.Views.ReproDiffView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <ScrollViewer>
+    <StackPanel Margin="16">
+      <TextBlock Text="Repro &amp; Diff" Style="{StaticResource Text.Header}"
+                 FontSize="{StaticResource Type.Display}" Margin="0,0,0,12"/>
+      <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap"
+                 Text="Compare two capture bundles event by event. Reports the first divergent event, per-kind count deltas, and any drift. Turns every user-reported bug into a permanent regression test."/>
+
+      <TextBlock Text="Bundle A (reference)" Style="{StaticResource Text.Muted}" Margin="0,12,0,4"/>
+      <TextBox Text="{Binding BundleA, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Bundle A path"/>
+      <TextBlock Text="Bundle B (candidate)" Style="{StaticResource Text.Muted}" Margin="0,10,0,4"/>
+      <TextBox Text="{Binding BundleB, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Bundle B path"/>
+      <StackPanel Orientation="Horizontal" Margin="0,12">
+        <Button Content="Compare" Command="{Binding CompareCommand}" MinWidth="120"
+                AutomationProperties.Name="Compare bundles"/>
+      </StackPanel>
+
+      <Border BorderThickness="1" BorderBrush="{StaticResource Brush.Border}"
+              Background="{StaticResource Brush.Surface.Elevated}" Padding="8">
+        <TextBox Text="{Binding Report, Mode=OneWay}" IsReadOnly="True"
+                 FontFamily="Consolas" MinHeight="300"
+                 VerticalScrollBarVisibility="Auto"
+                 AutomationProperties.Name="Diff report"/>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

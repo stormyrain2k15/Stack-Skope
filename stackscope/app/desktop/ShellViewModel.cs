@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using StackScope.Desktop.Services;
 using StackScope.Desktop.State;
 using StackScope.Desktop.ViewModels;
 using StackScope.Services;
@@ -26,6 +27,23 @@ public sealed partial class ShellViewModel : ObservableObject
     public DivergenceViewModel     DivergenceVm  { get; }
     public CircuitTraceViewModel   CircuitVm     { get; }
     public AblationViewModel       AblationVm    { get; }
+
+    // Product tools — all one-click, all backed by real code.
+    public HooksInspectorViewModel      HooksInspectorVm { get; }
+    public BundleWorkbenchViewModel     BundleVm         { get; }
+    public LiveTailViewModel            LiveTailVm       { get; }
+    public MCPServerViewModel           McpVm            { get; }
+    public AttachSessionViewModel       AttachVm         { get; }
+    public ReproDiffViewModel           ReproDiffVm      { get; }
+    public BugReportExporterViewModel   BugReportVm      { get; }
+
+    // Analysis passes.
+    public HealthDashboardViewModel     HealthVm         { get; }
+    public QuantizationDiffViewModel    QuantVm          { get; }
+    public DeterminismAuditorViewModel  DeterminismVm    { get; }
+    public AttributionGraphViewModel    AttributionVm    { get; }
+    public AnnotationsViewModel         NotesVm          { get; }
+    public NaturalQueryViewModel        NaturalQueryVm   { get; }
 
     [ObservableProperty] private string inspectorEventId = "—";
     [ObservableProperty] private string inspectorKind    = "—";
@@ -61,6 +79,25 @@ public sealed partial class ShellViewModel : ObservableObject
         DivergenceVm  = new DivergenceViewModel(project);
         CircuitVm     = new CircuitTraceViewModel(project);
         AblationVm    = new AblationViewModel();
+
+        // Product tools — the CLI stays intact for automation, but the
+        // UI is the primary surface. Every tool is one button-click away.
+        var py = new PythonCli();
+        var ps = new PowerShellRunner();
+        HooksInspectorVm = new HooksInspectorViewModel(py);
+        BundleVm         = new BundleWorkbenchViewModel(py);
+        LiveTailVm       = new LiveTailViewModel(py);
+        McpVm            = new MCPServerViewModel(py, ps);
+        AttachVm         = new AttachSessionViewModel(ps);
+        ReproDiffVm      = new ReproDiffViewModel(py);
+        BugReportVm      = new BugReportExporterViewModel(py, ps);
+
+        HealthVm         = new HealthDashboardViewModel(project);
+        QuantVm          = new QuantizationDiffViewModel(project);
+        DeterminismVm    = new DeterminismAuditorViewModel(project);
+        AttributionVm    = new AttributionGraphViewModel(project);
+        NotesVm          = new AnnotationsViewModel(project);
+        NaturalQueryVm   = new NaturalQueryViewModel();
     }
 
     public void RefreshInspectorFromSelection()

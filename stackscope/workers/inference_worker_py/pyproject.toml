@@ -20,7 +20,15 @@ dependencies = [
 dev = ["pytest>=8.2.0", "pytest-asyncio>=0.24.0", "ruff>=0.6.0"]
 
 [project.scripts]
-stackscope-worker = "stackscope_worker.worker:main"
+stackscope-worker   = "stackscope_worker.worker:main"
+stackscope-manifest = "stackscope_worker.manifest:main"
+stackscope-bundle   = "stackscope_worker.bundle:main"
+stackscope-dry-run  = "stackscope_worker.dry_run:main"
+stackscope-repro    = "stackscope_worker.repro:main"
+stackscope-tail     = "stackscope_worker.tail:main"
+stackscope-mcp      = "stackscope_worker.mcp_server:main"
+stackscope-attach   = "stackscope_worker.attach:main"
+stackscope-jsonl    = "stackscope_worker.jsonl_export:main"
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -52,3 +52,12 @@ public sealed class BoolToVisibilityConverter : IValueConverter
                                   : System.Windows.Visibility.Collapsed;
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
 }
+
+/// <summary>Boolean → inverse boolean. Used to enable/disable buttons.</summary>
+public sealed class InverseBoolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is bool b ? !b : true;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c)
+        => v is bool b ? !b : Binding.DoNothing;
+}

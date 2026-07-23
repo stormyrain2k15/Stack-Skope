@@ -1,0 +1,20 @@
+<UserControl x:Class="StackScope.Desktop.Views.NaturalQueryBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <StackPanel Margin="16">
+    <TextBlock Text="Natural Language Query" Style="{StaticResource Text.Header}"
+               FontSize="{StaticResource Type.Display}" Margin="0,0,0,8"/>
+    <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap"
+               Text="{Binding Hint}"/>
+    <TextBox Margin="0,10,0,6"
+             Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
+             AutomationProperties.Name="Natural language query"/>
+    <StackPanel Orientation="Horizontal">
+      <Button Content="Translate" Command="{Binding TranslateCommand}" MinWidth="96"
+              AutomationProperties.Name="Translate query"/>
+      <TextBlock Text="{Binding Translated}" Style="{StaticResource Text.Mono}"
+                 Margin="16,0,0,0" VerticalAlignment="Center"/>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

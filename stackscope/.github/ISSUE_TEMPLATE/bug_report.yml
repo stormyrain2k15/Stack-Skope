@@ -1,21 +1,50 @@
 name: Bug report
-description: Something isn't working as expected in StackScope.
+description: Something isn't working in StackScope. Fill in all five fields — we need them.
 title: "[bug] "
 labels: ["bug", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for filing a bug! Please fill in as much as you can — capture
-        logs are the single most valuable piece of information.
+        ### Before you file
+        We need five things to fix your bug:
+
+        1. **Capture ULID** — the transaction id shown in the title bar of the app, or the folder name under `%APPDATA%/StackScope/captures/`.
+        2. **Build SHA** — `stackscope --version` in a terminal, or the About dialog.
+        3. **Reproducibility manifest** — run `stackscope-manifest --emit > manifest.json` and paste the contents. If StackScope refuses to start, run `python -m stackscope_worker.manifest --emit` from the worker install directory.
+        4. **First anomalous event ULID** — the event id of the row you first noticed the problem on.
+        5. **Command line + env** — how you launched the run.
+
+        No stubs. No screenshots-only reports. Screenshots are welcome ALONGSIDE the five fields above.
   - type: input
-    id: version
+    id: capture_ulid
     attributes:
-      label: StackScope version
-      description: Output of `stackscope --version` or the release tag.
-      placeholder: "0.1.0"
+      label: Capture ULID (transaction id)
+      placeholder: "01HKQZ9V8W4Y2C1S6Q7BX3H9NA"
     validations:
       required: true
+  - type: input
+    id: build_sha
+    attributes:
+      label: Build SHA / version
+      placeholder: "0.1.0 (a1b2c3d)"
+    validations:
+      required: true
+  - type: textarea
+    id: manifest
+    attributes:
+      label: Reproducibility manifest (paste JSON)
+      description: Output of `stackscope-manifest --emit`.
+      render: json
+    validations:
+      required: true
+  - type: input
+    id: first_event_ulid
+    attributes:
+      label: First anomalous event ULID
+      placeholder: "01HKQZ9V8W4Y2C1S6Q7BX3H9NB"
+    validations:
+      required: false
   - type: dropdown
     id: component
     attributes:
@@ -33,6 +62,7 @@ body:
         - llama.cpp worker
         - Coordinator / gRPC
         - MSI installer / packaging
+        - CLI (repro / tail / dry-run / bundle / mcp)
         - Docs / build scripts
     validations:
       required: true
@@ -44,10 +74,18 @@ body:
     validations:
       required: true
   - type: textarea
+    id: cmdline
+    attributes:
+      label: Command line + environment
+      description: Full invocation and any relevant env vars.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
     id: what
     attributes:
       label: What happened?
-      description: Steps to reproduce, expected vs. actual behaviour.
+      description: Steps to reproduce, expected vs. actual behaviour. Include event ULIDs where possible.
     validations:
       required: true
   - type: textarea
@@ -63,5 +101,7 @@ body:
       options:
         - label: I searched existing issues.
           required: true
+        - label: I ran `stackscope-repro <capture>` and included the drift report if any.
+          required: false
         - label: I can reproduce this on the latest `main`.
           required: false

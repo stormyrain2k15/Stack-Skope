@@ -20,7 +20,13 @@ try {
 
     Write-Host "==> Python worker tests"
     python -m pip install --quiet -r workers/inference_worker_py/requirements.txt
+    $env:STACKSCOPE_SKIP_HF_TESTS = "1"
+    $env:PYTHONPATH = "workers/inference_worker_py/src"
     python -m pytest tests/python_worker_tests -q
+
+    Write-Host "==> Python ruff"
+    python -m pip install --quiet ruff
+    python -m ruff check workers/inference_worker_py/src
 
     Write-Host "==> llama.cpp worker (CMake)"
     if (Test-Path workers/llamacpp_worker/vendor/llama.cpp) {

@@ -14,10 +14,29 @@ public sealed class WorkerLauncher
 
     public WorkerLauncher(ILogger<WorkerLauncher> log) { _log = log; }
 
-    public sealed record SpawnResult(string Endpoint, Process Process);
+    public sealed record SpawnResult(string Endpoint, Process? Process);
 
     public async Task<SpawnResult> SpawnAsync(string kind, CancellationToken ct)
     {
+        // Attach mode — user has already booted a StackScope gRPC server
+        // inside a running Python process via stackscope_worker.attach.attach_here.
+        // We skip spawning and just probe the endpoint.
+        var attachEnv = Environment.GetEnvironmentVariable("STACKSCOPE_ATTACH_ENDPOINT");
+        if (!string.IsNullOrWhiteSpace(attachEnv))
+        {
+            var host = attachEnv.Split(':')[0];
+            var portStr = attachEnv.Split(':').Last();
+            if (int.TryParse(portStr, out int aport))
+            {
+                if (await WaitForListenerAsync(aport, TimeSpan.FromSeconds(5), ct))
+                {
+                    _log.LogInformation("Attaching to existing worker at {Endpoint}", attachEnv);
+                    return new SpawnResult(attachEnv, null);
+                }
+                _log.LogWarning("STACKSCOPE_ATTACH_ENDPOINT set but no listener at {Endpoint}", attachEnv);
+            }
+        }
+
         int port = ReserveFreePort();
         string endpoint = $"127.0.0.1:{port}";
 

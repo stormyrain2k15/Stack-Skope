@@ -1,0 +1,34 @@
+<UserControl x:Class="StackScope.Desktop.Views.MCPServerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <ScrollViewer>
+    <StackPanel Margin="16">
+      <TextBlock Text="AI Assistant Access" Style="{StaticResource Text.Header}"
+                 FontSize="{StaticResource Type.Display}" Margin="0,0,0,12"/>
+      <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap"
+                 Text="Serve the selected capture bundle to any AI assistant that speaks MCP (Claude Desktop, Cursor, Cline, …). One-click copy generates the exact JSON block to paste into your assistant's config file."/>
+
+      <TextBlock Text="Bundle to serve" Style="{StaticResource Text.Muted}" Margin="0,12,0,4"/>
+      <TextBox Text="{Binding BundlePath, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="MCP bundle path"/>
+
+      <StackPanel Orientation="Horizontal" Margin="0,12">
+        <Button Content="Start server" Command="{Binding StartCommand}" MinWidth="120"
+                IsEnabled="{Binding IsRunning, Converter={StaticResource InverseBool}}"
+                AutomationProperties.Name="Start MCP server"/>
+        <Button Content="Stop"  Command="{Binding StopCommand}" MinWidth="80" Margin="8,0"
+                IsEnabled="{Binding IsRunning}"
+                AutomationProperties.Name="Stop MCP server"/>
+        <Button Content="Copy Claude Desktop config"
+                Command="{Binding CopyClaudeConfigCommand}" MinWidth="220" Margin="8,0"
+                AutomationProperties.Name="Copy Claude Desktop MCP config"/>
+      </StackPanel>
+
+      <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Muted}"/>
+
+      <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Margin="0,16,0,0"
+                 Text="Once the server is running, ask your AI: 'summarise the stackscope capture', 'list the top-K attention heads for token 3', or 'find the first divergent event between this bundle and last week's baseline'. The assistant will call StackScope's tools directly."/>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

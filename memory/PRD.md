@@ -52,22 +52,55 @@ stackscope/
 No stubs. No mock data. Deferred items honestly absent. Every visual bound to a real event id. Correlation confidence labelled. Out-of-process capture. Keyboard-complete. Progressive disclosure.
 
 ## Verified in this environment
-- 190 files, Python parses + `ruff` clean, all YAML workflows parse clean.
-- Python worker tests: **7 passed, 1 skipped, 0 failed** (HF network test skipped).
+- 190+ files, Python parses + `ruff` clean, all YAML workflows parse clean.
+- Python worker tests: **41 passed, 1 skipped, 0 failed** (HF network test skipped).
+- Every Python CLI end-to-end smoke-tested (`dry-run`, `manifest`, `bundle`,
+  `repro`, `jsonl-canonical-hash`, `worker --dry-run-hooks`).
 - Anomaly emits `stackscope.anomaly` on NaN logit.
 - DivergenceDetector + HeadDiffAnalyzer xUnit tests assert the correct outlier.
 
-## Bug fixes landed (Feb 2026)
-- **LAYER_BEGIN over-count** — a 3-block model was emitting 6 `LAYER_BEGIN`
-  events because `infer_layer_index()` returns the same layer id for any
-  descendant of `model.layers.<N>` (needed for tagging attention/activation
-  events with their owning layer), so the old gate
-  `(layer_idx >= 0 and proj is None)` matched inner leaves like
-  `model.layers.<N>.mlp` too. Fixed by introducing
-  `is_transformer_block(name)` — True iff the last two dotted segments are
-  `<container>.<int>` — and gating `LAYER_BEGIN`/`LAYER_END` on that flag.
-  Verified by testing agent (iteration 1): `test_hook_capture_emits_token_and_layer_events`
-  now green, new regression `test_is_transformer_block_only_matches_block_itself` added.
+## Feb 2026 sweep — everything is one WPF click
+
+The user constraint: this is a product, not a CLI toolkit. Every capability
+must be reachable from a button in the WPF shell. The Python CLIs are the
+transport underneath.
+
+**New Python modules** (all with pytest coverage):
+- `manifest.py` — reproducibility manifest (torch/CUDA/ROCm/Vulkan versions,
+  driver strings, seed, dtype, quant, env snapshot).
+- `bundle.py` — `.stackscope` zip pack/unpack.
+- `dry_run.py` — hook-classification introspector for toy archs + real HF ids.
+- `jsonl_export.py` — canonical, git-diffable event export + stable hash.
+- `repro.py` — replay a bundle, diff against another, drift detection.
+- `tail.py` — live event streaming with grep + kind filters.
+- `mcp_server.py` — Model Context Protocol server (stdlib-only, JSON-RPC 2.0)
+  exposing 7 tools an AI can call directly.
+- `attach.py` — in-process attach for already-running Python processes.
+
+**New .NET core analysis passes** (all with xUnit coverage):
+- `NumericalHealth.cs` — per-layer NaN/Inf, entropy stats, latency outliers.
+- `QuantizationDiff.cs` — f16 vs q4/q8/… divergence with per-layer sigma shift.
+- `DeterminismAuditor.cs` — content-hash mismatch across two runs.
+- `AttributionGraph.cs` — weighted causal graph rooted at output token.
+- `ReproducibilityManifest.cs` — C# twin of the Python manifest.
+- `SnapshotAnnotation.cs` + `AnnotationStore.cs` — SQLite-backed research
+  notes with markdown export.
+
+**New WPF views** (one-click surfaces, backed by `PythonCli.cs` +
+`PowerShellRunner.cs`):
+- HooksInspectorView, BundleWorkbenchView, LiveTailView, MCPServerView,
+  AttachSessionView, ReproDiffView, BugReportExporterView,
+  HealthDashboardView, QuantizationDiffView, DeterminismAuditorView,
+  AttributionGraphView, AnnotationsView, NaturalQueryBar.
+
+**New commands + hotkeys**: 14 new `RoutedUICommand`s wired into menus,
+key bindings, and the command palette. Includes `F4 Debug this token`
+which seeds + runs Attribution Graph and Numerical Health in one keystroke.
+
+**Repo hygiene** added earlier still valid: `.editorconfig`,
+`.gitattributes`, `.github/dependabot.yml`, CONTRIBUTING, SECURITY,
+issue + PR templates, `buf.yaml`, `docs/BUILD.md`, `AGENTS.md`,
+`CLAUDE.md`, `.cursorrules`. All updated with the new invariants.
 
 ## GitHub build canaries (added Feb 2026)
 Six workflows under `.github/workflows/` act as precompile tests before the

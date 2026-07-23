@@ -1,0 +1,47 @@
+<UserControl x:Class="StackScope.Desktop.Views.BundleWorkbenchView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <ScrollViewer>
+    <StackPanel Margin="16">
+      <TextBlock Text="Capture Bundles" Style="{StaticResource Text.Header}"
+                 FontSize="{StaticResource Type.Display}" Margin="0,0,0,12"/>
+      <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap"
+                 Text="Pack a capture directory into a self-contained .stackscope file you can share, attach to a bug report, or paste into an AI assistant. Unpack an existing bundle to inspect it. Verify a bundle against its recorded hash."/>
+
+      <TextBlock Text="Capture directory" Style="{StaticResource Text.Muted}" Margin="0,12,0,4"/>
+      <TextBox Text="{Binding CaptureDir, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Capture directory path"/>
+
+      <TextBlock Text="Bundle file (.stackscope)" Style="{StaticResource Text.Muted}" Margin="0,10,0,4"/>
+      <TextBox Text="{Binding BundlePath, UpdateSourceTrigger=PropertyChanged}"
+               AutomationProperties.Name="Bundle file path"/>
+
+      <TextBlock Text="Notes (optional)" Style="{StaticResource Text.Muted}" Margin="0,10,0,4"/>
+      <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+               AcceptsReturn="True" MinHeight="60"
+               AutomationProperties.Name="Bundle notes"/>
+
+      <StackPanel Orientation="Horizontal" Margin="0,12">
+        <Button Content="Pack →"     Command="{Binding PackCommand}"   MinWidth="96"
+                AutomationProperties.Name="Pack bundle"/>
+        <Button Content="← Unpack"   Command="{Binding UnpackCommand}" MinWidth="96" Margin="8,0"
+                AutomationProperties.Name="Unpack bundle"/>
+        <Button Content="Verify"     Command="{Binding VerifyCommand}" MinWidth="96"
+                AutomationProperties.Name="Verify bundle"/>
+        <Button Content="Open folder" Command="{Binding OpenFolderCmd}"
+                CommandParameter="{Binding CaptureDir}" MinWidth="120" Margin="8,0"
+                AutomationProperties.Name="Open folder in Explorer"/>
+      </StackPanel>
+
+      <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Muted}" Margin="0,4"/>
+      <Border BorderThickness="1" BorderBrush="{StaticResource Brush.Border}"
+              Background="{StaticResource Brush.Surface.Elevated}" Padding="8" Margin="0,8">
+        <TextBox Text="{Binding VerifyReport, Mode=OneWay}" IsReadOnly="True"
+                 FontFamily="Consolas" MinHeight="200"
+                 VerticalScrollBarVisibility="Auto"
+                 AutomationProperties.Name="Verify report"/>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

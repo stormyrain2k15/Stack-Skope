@@ -1,0 +1,49 @@
+# StackScope Cursor rules — read AGENTS.md first.
+
+## Hard invariants
+
+- Never gate LAYER_BEGIN / LAYER_END on `layer_idx >= 0 and proj is None`.
+  Gate them on `is_transformer_block(name)` — the block itself, not any
+  descendant that shares the same inferred layer index. Regression:
+  tests/python_worker_tests/test_hooks.py.
+- Storage is mmap + SQLite. Not MongoDB. Do not add document-store code.
+- All event reads go through QueryEngine (C#) or the generated gRPC
+  client (Python). Never read the mmap directly from analysis code.
+- Every event is addressed by its ULID. Cite ULIDs in diagnostics, never
+  positional indices.
+- Timestamps: time.perf_counter_ns() on the worker; Stopwatch on C#.
+  Never time.time(), datetime.now(), or time.monotonic().
+- WPF UI is net8.0-windows only. Do not attempt to compile it on Linux.
+  Trust the GitHub Actions canaries.
+
+## Style
+
+- C#: sealed record over class where possible, no `var` in public APIs.
+- Python: type hints on all public functions. Compact `if X: return Y`
+  guards are allowed (see is_attention_projection); ruff config ignores
+  E701/E702 for exactly that.
+- XAML: one control per file, follow AnalysisView.xaml layout for new
+  analysis panels.
+- Never add stubs, mocks, or "TODO: implement later" bodies.
+
+## Environment
+
+- Frontend expects REACT_APP_BACKEND_URL — not applicable to this
+  project (there is no web UI). Ignore that pattern.
+- Backend does not use MONGO_URL — ignore that too.
+- gRPC runs on loopback only. Coordinator picks a free port; workers
+  connect back.
+
+## Testing
+
+- Python: STACKSCOPE_SKIP_HF_TESTS=1 PYTHONPATH=workers/inference_worker_py/src
+  python3 -m pytest tests/python_worker_tests -q
+- .NET Core (works on Linux): dotnet test tests/Core.Tests
+- .NET WPF (Windows only): let CI compile.
+
+## Never touch
+
+- proto field numbers. Add new fields with new numbers.
+- .git or .emergent directories.
+- The Directory.Build.props at the solution root without checking
+  every project first.

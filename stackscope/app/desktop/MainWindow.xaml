@@ -35,6 +35,20 @@
         <KeyBinding Command="{x:Static cmd:Commands.OpenPalette}"        Key="P" Modifiers="Control+Shift"/>
         <KeyBinding Command="{x:Static cmd:Commands.SaveLayout}"         Key="S" Modifiers="Control+Shift"/>
         <KeyBinding Command="{x:Static cmd:Commands.ResetLayout}"        Key="R" Modifiers="Control+Shift"/>
+        <KeyBinding Command="{x:Static cmd:Commands.InspectHooks}"       Key="H" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.BundleWorkbench}"    Key="B" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.LiveTail}"           Key="T" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.MCPServer}"          Key="A" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.AttachSession}"      Key="J" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.ReproDiff}"          Key="D" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.BugReport}"          Key="R" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.HealthDashboard}"    Key="N" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.QuantizationDiff}"   Key="Q" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.DeterminismAudit}"   Key="U" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.AttributionGraph}"   Key="G" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.Annotations}"        Key="K" Modifiers="Control+Alt"/>
+        <KeyBinding Command="{x:Static cmd:Commands.DebugToken}"         Key="F4"/>
+        <KeyBinding Command="{x:Static cmd:Commands.NaturalQuery}"       Key="OemQuestion" Modifiers="Control"/>
     </Window.InputBindings>
 
     <Window.CommandBindings>
@@ -50,6 +64,20 @@
         <CommandBinding Command="{x:Static cmd:Commands.OpenPalette}"        Executed="OnOpenPalette"/>
         <CommandBinding Command="{x:Static cmd:Commands.SaveLayout}"         Executed="OnSaveLayout"/>
         <CommandBinding Command="{x:Static cmd:Commands.ResetLayout}"        Executed="OnResetLayout"/>
+        <CommandBinding Command="{x:Static cmd:Commands.InspectHooks}"       Executed="OnFocusPane" CommandParameter="hooksinspect"/>
+        <CommandBinding Command="{x:Static cmd:Commands.BundleWorkbench}"    Executed="OnFocusPane" CommandParameter="bundles"/>
+        <CommandBinding Command="{x:Static cmd:Commands.LiveTail}"           Executed="OnFocusPane" CommandParameter="livetail"/>
+        <CommandBinding Command="{x:Static cmd:Commands.MCPServer}"          Executed="OnFocusPane" CommandParameter="mcp"/>
+        <CommandBinding Command="{x:Static cmd:Commands.AttachSession}"      Executed="OnFocusPane" CommandParameter="attach"/>
+        <CommandBinding Command="{x:Static cmd:Commands.ReproDiff}"          Executed="OnFocusPane" CommandParameter="reprodiff"/>
+        <CommandBinding Command="{x:Static cmd:Commands.BugReport}"          Executed="OnFocusPane" CommandParameter="bugreport"/>
+        <CommandBinding Command="{x:Static cmd:Commands.HealthDashboard}"    Executed="OnFocusPane" CommandParameter="health"/>
+        <CommandBinding Command="{x:Static cmd:Commands.QuantizationDiff}"   Executed="OnFocusPane" CommandParameter="quantdiff"/>
+        <CommandBinding Command="{x:Static cmd:Commands.DeterminismAudit}"   Executed="OnFocusPane" CommandParameter="determinism"/>
+        <CommandBinding Command="{x:Static cmd:Commands.AttributionGraph}"   Executed="OnFocusPane" CommandParameter="attribution"/>
+        <CommandBinding Command="{x:Static cmd:Commands.Annotations}"        Executed="OnFocusPane" CommandParameter="notes"/>
+        <CommandBinding Command="{x:Static cmd:Commands.NaturalQuery}"       Executed="OnFocusPane" CommandParameter="nlquery"/>
+        <CommandBinding Command="{x:Static cmd:Commands.DebugToken}"         Executed="OnDebugToken"/>
     </Window.CommandBindings>
 
     <DockPanel LastChildFill="True">
@@ -90,6 +118,26 @@
             <MenuItem Header="_Layout">
                 <MenuItem Header="_Save"  Command="{x:Static cmd:Commands.SaveLayout}"  InputGestureText="Ctrl+Shift+S"/>
                 <MenuItem Header="_Reset" Command="{x:Static cmd:Commands.ResetLayout}" InputGestureText="Ctrl+Shift+R"/>
+            </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Inspect Hooks"    Command="{x:Static cmd:Commands.InspectHooks}"    InputGestureText="Ctrl+Alt+H"/>
+                <MenuItem Header="Capture _Bundles"  Command="{x:Static cmd:Commands.BundleWorkbench}" InputGestureText="Ctrl+Alt+B"/>
+                <MenuItem Header="_Live Tail"        Command="{x:Static cmd:Commands.LiveTail}"        InputGestureText="Ctrl+Alt+T"/>
+                <MenuItem Header="AI _Assistant"     Command="{x:Static cmd:Commands.MCPServer}"       InputGestureText="Ctrl+Alt+A"/>
+                <MenuItem Header="Attach to Running" Command="{x:Static cmd:Commands.AttachSession}"   InputGestureText="Ctrl+Alt+J"/>
+                <MenuItem Header="Repro &amp; _Diff" Command="{x:Static cmd:Commands.ReproDiff}"       InputGestureText="Ctrl+Alt+D"/>
+                <MenuItem Header="Send Bug _Report"  Command="{x:Static cmd:Commands.BugReport}"       InputGestureText="Ctrl+Alt+R"/>
+                <Separator/>
+                <MenuItem Header="_Notes"            Command="{x:Static cmd:Commands.Annotations}"     InputGestureText="Ctrl+Alt+K"/>
+                <MenuItem Header="_Natural Query"    Command="{x:Static cmd:Commands.NaturalQuery}"    InputGestureText="Ctrl+?"/>
+            </MenuItem>
+            <MenuItem Header="_Analysis">
+                <MenuItem Header="_Numerical Health"  Command="{x:Static cmd:Commands.HealthDashboard}"  InputGestureText="Ctrl+Alt+N"/>
+                <MenuItem Header="_Quantization Diff" Command="{x:Static cmd:Commands.QuantizationDiff}" InputGestureText="Ctrl+Alt+Q"/>
+                <MenuItem Header="Determinism A_udit" Command="{x:Static cmd:Commands.DeterminismAudit}" InputGestureText="Ctrl+Alt+U"/>
+                <MenuItem Header="Attribution _Graph" Command="{x:Static cmd:Commands.AttributionGraph}" InputGestureText="Ctrl+Alt+G"/>
+                <Separator/>
+                <MenuItem Header="Debug this _token"  Command="{x:Static cmd:Commands.DebugToken}"       InputGestureText="F4"/>
             </MenuItem>
         </Menu>
 
@@ -206,6 +254,39 @@
                         <avalonDock:LayoutDocument Title="Analysis" ContentId="analysis">
                             <v:AnalysisView/>
                         </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Numerical Health" ContentId="health">
+                            <v:HealthDashboardView DataContext="{Binding HealthVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Quantization Diff" ContentId="quantdiff">
+                            <v:QuantizationDiffView DataContext="{Binding QuantVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Determinism" ContentId="determinism">
+                            <v:DeterminismAuditorView DataContext="{Binding DeterminismVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Attribution" ContentId="attribution">
+                            <v:AttributionGraphView DataContext="{Binding AttributionVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Hooks Inspector" ContentId="hooksinspect">
+                            <v:HooksInspectorView DataContext="{Binding HooksInspectorVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Bundles" ContentId="bundles">
+                            <v:BundleWorkbenchView DataContext="{Binding BundleVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Repro &amp; Diff" ContentId="reprodiff">
+                            <v:ReproDiffView DataContext="{Binding ReproDiffVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Live Tail" ContentId="livetail">
+                            <v:LiveTailView DataContext="{Binding LiveTailVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="AI Assistant" ContentId="mcp">
+                            <v:MCPServerView DataContext="{Binding McpVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Attach" ContentId="attach">
+                            <v:AttachSessionView DataContext="{Binding AttachVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Bug Report" ContentId="bugreport">
+                            <v:BugReportExporterView DataContext="{Binding BugReportVm}"/>
+                        </avalonDock:LayoutDocument>
                     </avalonDock:LayoutDocumentPane>
 
                     <avalonDock:LayoutAnchorablePane DockWidth="320">
@@ -237,6 +318,12 @@
                                     </StackPanel>
                                 </StackPanel>
                             </ScrollViewer>
+                        </avalonDock:LayoutAnchorable>
+                        <avalonDock:LayoutAnchorable Title="Notes" ContentId="notes">
+                            <v:AnnotationsView DataContext="{Binding NotesVm}"/>
+                        </avalonDock:LayoutAnchorable>
+                        <avalonDock:LayoutAnchorable Title="NL Query" ContentId="nlquery">
+                            <v:NaturalQueryBar DataContext="{Binding NaturalQueryVm}"/>
                         </avalonDock:LayoutAnchorable>
                     </avalonDock:LayoutAnchorablePane>
                 </avalonDock:LayoutPanel>

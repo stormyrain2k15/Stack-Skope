@@ -45,6 +45,21 @@ class InferenceWorkerServicer:
                                          os.path.join(os.getcwd(), "arena"))
         self._start_time_ns = now_ns()
 
+    # ---- Attach-mode entry point -----------------------------------------
+
+    def set_preloaded_model(self, model, *, handle: str = "attached",
+                            tokenizer=None, device: str = "cpu",
+                            config=None) -> str:
+        """Register a model instance loaded elsewhere (e.g. from a
+        running notebook) so RunInference can drive it without
+        re-loading weights. Returns the handle to pass to RunInference.
+        """
+        self._models[handle] = {
+            "model": model, "tokenizer": tokenizer,
+            "device": device, "config": config,
+        }
+        return handle
+
     # ---- Service interface ------------------------------------------------
 
     def GetCapabilities(self, request, context):

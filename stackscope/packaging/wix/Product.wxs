@@ -24,6 +24,7 @@
       <ComponentGroupRef Id="CoordinatorFiles" />
       <ComponentGroupRef Id="WorkerFiles" />
       <ComponentGroupRef Id="ProtoFiles" />
+      <ComponentGroupRef Id="DocsFiles" />
       <ComponentGroupRef Id="ShortcutsGroup" />
     </Feature>
 
@@ -33,6 +34,7 @@
         <Directory Id="COORD_DIR" Name="coordinator" />
         <Directory Id="WORKER_DIR" Name="worker" />
         <Directory Id="PROTO_DIR" Name="proto" />
+        <Directory Id="DOCS_DIR" Name="docs" />
       </Directory>
     </StandardDirectory>
 
@@ -50,13 +52,24 @@
       <Files Include="..\..\services\host\bin\Release\net8.0\**" />
     </ComponentGroup>
     <ComponentGroup Id="WorkerFiles" Directory="WORKER_DIR">
-      <!-- The Python worker is delivered as source + a bootstrap script
-           because Python distribution is site-managed. The Windows box
-           picks its interpreter. -->
+      <!-- Python worker source. Windows box supplies the interpreter (or
+           uses the bundled one; see docs/BUILD.md). Modules shipped:
+             worker, hooks, anomaly, markers, attention_capture, grpc_service,
+             manifest, bundle, dry_run, jsonl_export, repro, tail,
+             mcp_server, attach.
+           All are Python-side transports for the WPF one-click surfaces. -->
       <Files Include="..\..\workers\inference_worker_py\**" />
     </ComponentGroup>
     <ComponentGroup Id="ProtoFiles" Directory="PROTO_DIR">
       <Files Include="..\..\proto\*.proto" />
+    </ComponentGroup>
+    <ComponentGroup Id="DocsFiles" Directory="DOCS_DIR">
+      <!-- Ship docs so IT admins and AI assistants have the invariants
+           side-by-side with the installed product. -->
+      <Files Include="..\..\docs\**" />
+      <File Source="..\..\AGENTS.md"   Name="AGENTS.md" />
+      <File Source="..\..\CLAUDE.md"   Name="CLAUDE.md" />
+      <File Source="..\..\.cursorrules" Name="cursorrules" />
     </ComponentGroup>
 
     <ComponentGroup Id="ShortcutsGroup" Directory="StartMenuFolder">

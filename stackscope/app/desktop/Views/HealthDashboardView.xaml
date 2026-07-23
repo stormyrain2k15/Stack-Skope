@@ -1,0 +1,50 @@
+<UserControl x:Class="StackScope.Desktop.Views.HealthDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <ScrollViewer>
+    <StackPanel Margin="16">
+      <TextBlock Text="Numerical Health Dashboard" Style="{StaticResource Text.Header}"
+                 FontSize="{StaticResource Type.Display}" Margin="0,0,0,12"/>
+      <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap"
+                 Text="Per-layer roll-up of NaN/Inf hits, attention entropy collapse/degeneracy, and latency outliers. The 'is this model producing sane numbers' answer, at a glance."/>
+
+      <StackPanel Orientation="Horizontal" Margin="0,12,0,6">
+        <TextBlock Text="Transaction" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+        <TextBox Width="260" Margin="6,0"
+                 Text="{Binding TransactionId, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Health transaction id"/>
+        <Button Content="Compute" Command="{Binding ComputeCommand}" MinWidth="96"
+                AutomationProperties.Name="Compute health"/>
+        <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Muted}"
+                   Margin="16,0,0,0" VerticalAlignment="Center"/>
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" Margin="0,4">
+        <TextBlock Style="{StaticResource Text.Muted}"><Run Text="Total events: "/><Run Text="{Binding TotalEvents}"/></TextBlock>
+        <TextBlock Style="{StaticResource Text.Muted}" Margin="20,0,0,0"><Run Text="Anomalies: "/><Run Text="{Binding TotalAnomalies}"/></TextBlock>
+      </StackPanel>
+
+      <ListView ItemsSource="{Binding Layers}" Height="260" Margin="0,8"
+                AutomationProperties.Name="Per-layer health">
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="Layer"       Width="60"  DisplayMemberBinding="{Binding Layer}"/>
+            <GridViewColumn Header="NaN/Inf"     Width="80"  DisplayMemberBinding="{Binding NanInfCount}"/>
+            <GridViewColumn Header="Collapse"    Width="80"  DisplayMemberBinding="{Binding EntropyCollapseCount}"/>
+            <GridViewColumn Header="Degenerate"  Width="90"  DisplayMemberBinding="{Binding EntropyDegenerateCount}"/>
+            <GridViewColumn Header="Lat outliers" Width="90" DisplayMemberBinding="{Binding LatencyOutlierCount}"/>
+            <GridViewColumn Header="Entropy min" Width="100" DisplayMemberBinding="{Binding MinEntropy, StringFormat=F4}"/>
+            <GridViewColumn Header="Entropy max" Width="100" DisplayMemberBinding="{Binding MaxEntropy, StringFormat=F4}"/>
+            <GridViewColumn Header="Median ms"   Width="90"  DisplayMemberBinding="{Binding LayerMedianMs, StringFormat=F3}"/>
+          </GridView>
+        </ListView.View>
+      </ListView>
+
+      <TextBlock Text="Findings" Style="{StaticResource Text.Header}" Margin="0,12,0,4"/>
+      <ListBox ItemsSource="{Binding Findings}" Height="160"
+               FontFamily="Consolas"
+               AutomationProperties.Name="Health findings"/>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -141,4 +141,52 @@ public partial class MainWindow : Window
     }
 
     private void OnExit(object sender, RoutedEventArgs e) => Close();
+
+    private void OnFocusPane(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (e.Parameter is not string contentId) return;
+        FocusPane(contentId);
+    }
+
+    private void FocusPane(string contentId)
+    {
+        var layout = Dock.Layout;
+        foreach (var doc in layout.Descendents().OfType<AvalonDock.Layout.LayoutDocument>())
+        {
+            if (string.Equals(doc.ContentId, contentId, StringComparison.Ordinal))
+            {
+                doc.IsActive = true; doc.IsSelected = true; return;
+            }
+        }
+        foreach (var anch in layout.Descendents().OfType<AvalonDock.Layout.LayoutAnchorable>())
+        {
+            if (string.Equals(anch.ContentId, contentId, StringComparison.Ordinal))
+            {
+                anch.Show(); anch.IsActive = true; return;
+            }
+        }
+        StatusText.Text = $"Pane not found: {contentId}";
+    }
+
+    /// <summary>"Debug this token" — F4 shortcut. Reads the current
+    /// selection's token id, opens the Attribution Graph view, seeds
+    /// it with the current transaction + token, and runs the graph.
+    /// One click == six views' worth of context.</summary>
+    private void OnDebugToken(object sender, ExecutedRoutedEventArgs e)
+    {
+        var s = SelectionState.Current;
+        var txid = WorkspaceState.Current.CurrentTransactionId;
+        if (string.IsNullOrWhiteSpace(txid) || s.TokenIndex < 0)
+        {
+            StatusText.Text = "Select an event with a token first.";
+            return;
+        }
+        _shell.AttributionVm.TransactionId = txid!;
+        _shell.AttributionVm.TargetToken = s.TokenIndex;
+        _shell.AttributionVm.BuildCommand.Execute(null);
+        _shell.HealthVm.TransactionId = txid!;
+        _shell.HealthVm.ComputeCommand.Execute(null);
+        FocusPane("attribution");
+        StatusText.Text = $"Debugging token {s.TokenIndex} in {txid}.";
+    }
 }

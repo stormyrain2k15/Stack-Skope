@@ -69,11 +69,41 @@ Windows. Everything else is `net8.0` and cross-platform.
 
 ## Testing
 
-- `dotnet test` — xUnit suites in `tests/Core.Tests`, `tests/Adapters.Tests`.
-- `pytest workers/inference_worker_py/tests` — PyTorch hook capture round-trip
-  on a tiny model (e.g. `sshleifer/tiny-gpt2`).
+- `dotnet test` — xUnit suites in `tests/Core.Tests`, `tests/Adapters.Tests`
+  (14 test classes: EventStore round-trip, Ulid, CorrelationEngine, QueryEngine,
+  DistributionStats, HeadDiffAnalyzer, DivergenceDetector, NumericalHealth,
+  QuantizationDiff, DeterminismAuditor, AttributionGraph, ReproducibilityManifest,
+  AnnotationStore, and the format/architecture adapter tests).
+- `STACKSCOPE_SKIP_HF_TESTS=1 PYTHONPATH=workers/inference_worker_py/src pytest tests/python_worker_tests -q`
+  — 41 tests covering hook classification, per-arch adapter contracts (Llama,
+  Mistral, Qwen, Gemma, GPT-2, plus the tiny toy), reproducibility manifest,
+  bundle round-trip, JSONL export + canonical hash, MCP server, and the
+  frozen golden capture regression.
 - Integration test (`tests/integration`) drives worker → coordinator → query
   service and asserts real events are retrievable by (token, layer, head).
+
+## Product surfaces — every one is a WPF button
+
+None of these require the user to open a terminal. Each is a one-click
+view in the desktop app that shells out to the matching Python CLI
+underneath. The CLIs stay first-class for automation and scripting.
+
+| WPF view                | CLI it wraps                       | What it does |
+| ----------------------- | ---------------------------------- | ------------ |
+| Hooks Inspector         | `stackscope-dry-run`               | Print module classification table (blocks / attn projs / layer ids) |
+| Numerical Health        | (in-proc `NumericalHealth`)        | Per-layer NaN/Inf, entropy stats, latency outliers |
+| Quantization Diff       | (in-proc `QuantizationDiff`)       | f16 vs quant divergence; first-token, first-layer, energy delta |
+| Determinism Auditor     | (in-proc `DeterminismAuditor`)     | Content-hash mismatch pinpointing non-determinism |
+| Attribution Graph       | (in-proc `AttributionGraph`)       | Weighted causal graph rooted at a token |
+| Capture Bundles         | `stackscope-bundle`                | Pack / unpack / verify `.stackscope` files |
+| Repro & Diff            | `stackscope-repro`                 | Diff two bundles event-by-event |
+| Live Tail               | `stackscope-tail`                  | Stream new events with grep/kind filters |
+| AI Assistant Access     | `stackscope-mcp`                   | Serve a bundle over MCP to Claude/Cursor/Cline |
+| Attach to Running       | `stackscope_worker.attach.attach_here` | Two-line snippet copied to clipboard |
+| Send Bug Report         | `stackscope-manifest` + `bundle`   | One-click zip of capture + manifest + notes |
+| Annotations pane        | `AnnotationStore` (SQLite)         | Pinned research notes, markdown export |
+| Natural Language Query  | (rule-based translator)            | Type a query in English → structured filter |
+| Debug this token (F4)   | (chains AttributionGraph + Health) | One key: seeds and runs both views for the selected token |
 
 ## Deferred (honestly absent this pass)
 

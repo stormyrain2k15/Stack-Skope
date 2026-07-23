@@ -25,7 +25,21 @@ def main() -> int:
                         help="host:port to bind the gRPC server on.")
     parser.add_argument("--max-workers", type=int, default=8)
     parser.add_argument("--log-level", default="INFO")
+    parser.add_argument("--dry-run-hooks", metavar="MODEL", default=None,
+                        help="Skip serving. Print the hook classification for "
+                             "MODEL (a toy arch: tiny|llama|mistral|qwen|gemma|gpt2 "
+                             "or 'hf:<id>' for an HF checkpoint) and exit. "
+                             "Fastest way to diagnose hook-detection bugs.")
     args = parser.parse_args()
+
+    if args.dry_run_hooks:
+        from . import dry_run
+        if args.dry_run_hooks.startswith("hf:"):
+            names = dry_run._named_modules_from_hf(args.dry_run_hooks[3:])
+        else:
+            names = dry_run._named_modules_from_toy(args.dry_run_hooks)
+        print(dry_run._format_rows(dry_run.classify(names)))
+        return 0
 
     logging.basicConfig(level=args.log_level.upper(),
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")

@@ -12,6 +12,7 @@
             <conv:NsToMillisConverter x:Key="NsMs"/>
             <conv:KindToBrushConverter x:Key="KindBrush"/>
             <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
+            <conv:InverseBoolConverter x:Key="InverseBool"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

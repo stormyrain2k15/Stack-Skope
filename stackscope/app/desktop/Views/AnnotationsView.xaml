@@ -1,0 +1,75 @@
+<UserControl x:Class="StackScope.Desktop.Views.AnnotationsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+  <Grid Margin="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+      <TextBlock Text="Research Notes" Style="{StaticResource Text.Header}"
+                 FontSize="{StaticResource Type.Display}"/>
+      <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap"
+                 Text="Pinned annotations on (transaction, layer, head, token). Persistent across captures, exportable as markdown."/>
+    </StackPanel>
+
+    <Grid Grid.Row="1" Margin="0,4">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="80"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="80"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="80"/>
+      </Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="Tx" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+      <TextBox   Grid.Column="1" Margin="6,0" Text="{Binding TransactionId, UpdateSourceTrigger=PropertyChanged}"/>
+      <TextBlock Grid.Column="2" Text="Layer" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="10,0,4,0"/>
+      <TextBox   Grid.Column="3" Text="{Binding Layer, UpdateSourceTrigger=PropertyChanged}"/>
+      <TextBlock Grid.Column="4" Text="Head" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="10,0,4,0"/>
+      <TextBox   Grid.Column="5" Text="{Binding Head, UpdateSourceTrigger=PropertyChanged}"/>
+      <TextBlock Grid.Column="6" Text="Token" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="10,0,4,0"/>
+      <TextBox   Grid.Column="7" Text="{Binding Token, UpdateSourceTrigger=PropertyChanged}"/>
+    </Grid>
+
+    <StackPanel Grid.Row="2" Margin="0,8">
+      <TextBox Text="{Binding NewText, UpdateSourceTrigger=PropertyChanged}"
+               AcceptsReturn="True" MinHeight="60"
+               AutomationProperties.Name="Annotation text"/>
+      <StackPanel Orientation="Horizontal" Margin="0,6">
+        <TextBlock Text="Tags" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+        <TextBox Width="240" Margin="6,0" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}"/>
+        <Button Content="Add" Command="{Binding AddCommand}" MinWidth="80" Margin="12,0,0,0"
+                AutomationProperties.Name="Add annotation"/>
+        <Button Content="Refresh" Command="{Binding RefreshCommand}" MinWidth="80" Margin="6,0"
+                AutomationProperties.Name="Refresh annotations"/>
+        <Button Content="Export .md" Command="{Binding ExportMarkdownCommand}" MinWidth="100"
+                AutomationProperties.Name="Export annotations markdown"/>
+        <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Muted}"
+                   Margin="16,0,0,0" VerticalAlignment="Center"/>
+      </StackPanel>
+    </StackPanel>
+
+    <ListView Grid.Row="3" ItemsSource="{Binding Items}"
+              AutomationProperties.Name="Annotations list">
+      <ListView.View>
+        <GridView>
+          <GridViewColumn Header="Id"     Width="50"  DisplayMemberBinding="{Binding Id}"/>
+          <GridViewColumn Header="Tx"     Width="140" DisplayMemberBinding="{Binding TransactionId}"/>
+          <GridViewColumn Header="L"      Width="40"  DisplayMemberBinding="{Binding Layer}"/>
+          <GridViewColumn Header="H"      Width="40"  DisplayMemberBinding="{Binding Head}"/>
+          <GridViewColumn Header="Token"  Width="60"  DisplayMemberBinding="{Binding Token}"/>
+          <GridViewColumn Header="Author" Width="100" DisplayMemberBinding="{Binding Author}"/>
+          <GridViewColumn Header="Tags"   Width="140" DisplayMemberBinding="{Binding Tags}"/>
+          <GridViewColumn Header="Text"   Width="400" DisplayMemberBinding="{Binding Text}"/>
+        </GridView>
+      </ListView.View>
+    </ListView>
+  </Grid>
+</UserControl>

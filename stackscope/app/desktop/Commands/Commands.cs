@@ -34,6 +34,23 @@ public static class Commands
     public static readonly RoutedUICommand SaveLayout        = New("Layout: Save",       "SaveLayout",        Key.S, ModifierKeys.Control | ModifierKeys.Shift);
     public static readonly RoutedUICommand ResetLayout       = New("Layout: Reset",      "ResetLayout",       Key.R, ModifierKeys.Control | ModifierKeys.Shift);
 
+    // Product tools — every one of these is a one-click surface for a
+    // capability that could have required a terminal in a lesser tool.
+    public static readonly RoutedUICommand InspectHooks      = New("Tool: Inspect Hooks",     "InspectHooks",      Key.H, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand BundleWorkbench   = New("Tool: Capture Bundles",   "BundleWorkbench",   Key.B, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand LiveTail          = New("Tool: Live Tail",         "LiveTail",          Key.T, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand MCPServer         = New("Tool: AI Assistant Access","MCPServer",        Key.A, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand AttachSession     = New("Tool: Attach to Running", "AttachSession",     Key.J, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand ReproDiff         = New("Tool: Repro & Diff",      "ReproDiff",         Key.D, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand BugReport         = New("Tool: Send Bug Report",   "BugReport",         Key.R, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand HealthDashboard   = New("Analysis: Numerical Health",  "HealthDashboard",   Key.N, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand QuantizationDiff  = New("Analysis: Quantization Diff", "QuantizationDiff",  Key.Q, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand DeterminismAudit  = New("Analysis: Determinism Audit", "DeterminismAudit",  Key.U, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand AttributionGraph  = New("Analysis: Attribution Graph", "AttributionGraph",  Key.G, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand Annotations       = New("Notes: Annotations",         "Annotations",       Key.K, ModifierKeys.Control | ModifierKeys.Alt);
+    public static readonly RoutedUICommand DebugToken        = New("Debug this token",           "DebugToken",        Key.F4);
+    public static readonly RoutedUICommand NaturalQuery      = New("Natural Language Query",     "NaturalQuery",      Key.OemQuestion, ModifierKeys.Control);
+
     private static RoutedUICommand New(string text, string name, Key key,
                                        ModifierKeys mods = ModifierKeys.None)
     {
@@ -49,6 +66,10 @@ public static class Commands
         FocusCompare, FocusLibrary,
         BackSelection, ForwardSelection,
         DisclosureSimple, DisclosureAdvanced, DisclosureForensic,
-        OpenPalette, SaveLayout, ResetLayout
+        OpenPalette, SaveLayout, ResetLayout,
+        InspectHooks, BundleWorkbench, LiveTail, MCPServer, AttachSession,
+        ReproDiff, BugReport,
+        HealthDashboard, QuantizationDiff, DeterminismAudit, AttributionGraph,
+        Annotations, DebugToken, NaturalQuery,
     };
 }

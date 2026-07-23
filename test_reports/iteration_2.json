@@ -1,0 +1,47 @@
+{
+  "summary": "StackScope iteration-2 backend/Python validation. All 14 acceptance criteria PASS. Full pytest suite: 41 passed, 1 skipped (HF-gated), 0 failed. Ruff on workers/inference_worker_py/src is 'All checks passed!' (was 36 findings in iteration_1 — cleaned up). All 8 new Python modules (manifest, bundle, dry_run, jsonl_export, repro, tail, mcp_server, attach) verified via both unit tests and direct CLI/API smoke calls. worker.py --dry-run-hooks branch exits 0 without starting gRPC and prints '4 blocks'. Golden SHA-256 hash 501ba78bd1825c9e3246dd94b53c93171c83becb5505e4e9d4a57fe5550ccf3b is stable. MCP server exposes all 7 required tools with PROTOCOL_VERSION='2024-11-05'. Iteration-1 hook fix tests (test_hook_capture_emits_token_and_layer_events, test_is_transformer_block_only_matches_block_itself) still PASS.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/stackscope/tests/python_worker_tests/test_manifest.py",
+    "/app/stackscope/tests/python_worker_tests/test_bundle.py",
+    "/app/stackscope/tests/python_worker_tests/test_dry_run_hooks.py",
+    "/app/stackscope/tests/python_worker_tests/test_jsonl_export.py",
+    "/app/stackscope/tests/python_worker_tests/test_adapter_contracts.py",
+    "/app/stackscope/tests/python_worker_tests/test_mcp_server.py",
+    "/app/stackscope/tests/python_worker_tests/test_golden_capture.py",
+    "/app/stackscope/tests/python_worker_tests/test_hooks.py",
+    "/app/stackscope/tests/python_worker_tests/test_markers.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "manifest.build() correctly filters env_snapshot to relevant keys only (CUDA_VISIBLE_DEVICES included, SOMETHING_UNRELATED excluded) — verified via direct call.",
+    "bundle.pack/unpack round-trips manifest.json + model.json + events.jsonl + notes.md + README.md. Auto-injected README.md contains the string 'StackScope' as required. Zip name list is exactly {'manifest.json','model.json','events.jsonl','notes.md','README.md'}.",
+    "dry_run classifier for llama: exactly 4 BLOCK rows (model.layers.0..3), 53 modules, 16 attention projections. Summary line matches spec.",
+    "worker.py --dry-run-hooks llama branch exits 0 and prints 'summary: 53 modules, 4 blocks, 16 attention projections' without initializing gRPC — clean short-circuit.",
+    "repro.compare() correctly emits 'first divergence at index N' for a single-kind mutation and returns (identical=False). CLI exit code from stackscope-repro is non-zero on drift.",
+    "tail module streams new JSONL lines as they are appended; captured 'TOKEN_BEGIN tok=42' within <1s of append. Output uses formatted display ('ts=? kind=TOKEN_BEGIN tok=42 L=?') rather than raw JSON — that's a display choice, not a bug.",
+    "mcp_server: all 7 tools (list_events, hash, summary, first_divergence, manifest, model_descriptor, classify) present and unit-tested via test_mcp_server.py. PROTOCOL_VERSION='2024-11-05'. JSON-RPC unknown-tool path returns proper error object.",
+    "grpc_service.InferenceWorkerServicer.set_preloaded_model exists with signature (self, model, *, handle='attached', tokenizer=None, device='cpu', config=None) -> str. Direct call with a bare object() plus manually-populated self._models = {} returns the handle string as expected — logic is correct; couldn't call svc() with a real gRPC context because worker_pb2 protobuf stubs aren't built in this Linux container, but that's an environment limitation, not a code defect.",
+    "Golden hash test_golden_hash_is_stable passes — frozen SHA-256 501ba78b... matches _canonical_hash_of_dicts(GOLDEN_EVENTS). Bundle round-trip preserves the hash.",
+    "Adapter contract tests pass for llama/mistral/qwen/gemma/gpt2/tiny with the exact block-name sets. gpt2 correctly resolves to transformer.h.0..3; tiny is 3 blocks; llama-family is 4 blocks at model.layers.0..3.",
+    "Iteration-1 fix intact: is_transformer_block() still gates LAYER_BEGIN/LAYER_END correctly (test_hook_capture_emits_token_and_layer_events PASS).",
+    "Ruff cleanup is a real improvement over iteration_1 — no findings remain in workers/inference_worker_py/src."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "N/A",
+  "seed_data_creation": "None (used tempdirs + in-process fixtures only)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Re-verify with: cd /app/stackscope && STACKSCOPE_SKIP_HF_TESTS=1 PYTHONPATH=workers/inference_worker_py/src python3 -m pytest tests/python_worker_tests -q — expect 41 passed, 1 skipped, 0 failed. And cd /app/stackscope/workers/inference_worker_py && python3 -m ruff check src — expect 'All checks passed!'. WPF (13 new views + 12 view-models + 14 commands) and the 6 .NET analysis passes cannot be compiled in this Linux container — main agent should rely on GitHub Actions Windows canaries for those. Test test_end_to_end_on_tiny_gpt2 stays skipped because STACKSCOPE_SKIP_HF_TESTS=1 (no HF Hub access in container). set_preloaded_model was verified via direct __new__ + manually-set _models dict because worker_pb2 stubs are not built in this env.",
+  "rca_of_the_issue": "N/A — no issues found in this iteration."
+}
