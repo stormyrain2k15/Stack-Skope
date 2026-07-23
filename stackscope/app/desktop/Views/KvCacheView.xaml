@@ -1,0 +1,35 @@
+<UserControl x:Class="StackScope.Desktop.Views.KvCacheView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+    <DockPanel LastChildFill="True">
+        <Border DockPanel.Dock="Top" Padding="8,4"
+                Background="{StaticResource Brush.Surface.Elevated}"
+                BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="KV-cache growth" Style="{StaticResource Text.Header}"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+                <TextBlock Text="{Binding TotalPeakBytes, StringFormat='Peak: {0:N0} B'}"
+                           Style="{StaticResource Text.Mono}" VerticalAlignment="Center"
+                           Margin="24,0,0,0"/>
+                <TextBlock Text="{Binding LayerCount, StringFormat='Layers observed: {0}'}"
+                           Style="{StaticResource Text.Muted}" VerticalAlignment="Center"
+                           Margin="24,0,0,0"/>
+            </StackPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding LayerRows}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="8,2">
+                        <TextBlock Text="{Binding LayerLabel}" Style="{StaticResource Text.Mono}"
+                                   Width="60"/>
+                        <Rectangle Fill="{StaticResource Brush.Accent.Sage}"
+                                   Width="{Binding BarWidth}" Height="14"/>
+                        <TextBlock Text="{Binding BytesLabel}" Style="{StaticResource Text.Muted}"
+                                   Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</UserControl>

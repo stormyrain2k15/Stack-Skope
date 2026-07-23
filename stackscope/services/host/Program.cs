@@ -19,6 +19,7 @@ var project = new ProjectService(projectRoot);
 var query   = new QueryService(project);
 builder.Services.AddSingleton(project);
 builder.Services.AddSingleton(query);
+builder.Services.AddSingleton<StackScope.Coordinator.WorkerLauncher>();
 
 builder.Services.AddGrpc(o =>
 {

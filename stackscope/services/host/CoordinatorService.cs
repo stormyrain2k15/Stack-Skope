@@ -27,12 +27,15 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
     private readonly Dictionary<string, IRuntimeAdapter> _workers = new();
     private readonly Dictionary<string, string> _workerEndpoints = new();
     private readonly Dictionary<string, string> _workerKinds = new();
+    private readonly Dictionary<string, System.Diagnostics.Process> _spawnedProcs = new();
+    private readonly WorkerLauncher _launcher;
     private readonly object _lock = new();
 
     public CoordinatorService(ProjectService project, QueryService query,
+                              WorkerLauncher launcher,
                               ILogger<CoordinatorService> log)
     {
-        _project = project; _query = query; _log = log;
+        _project = project; _query = query; _launcher = launcher; _log = log;
     }
 
     public override async Task<ListWorkersReply> ListWorkers(
@@ -67,16 +70,14 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
     public override async Task<StartWorkerReply> StartWorker(
         StartWorkerRequest request, ServerCallContext context)
     {
-        // Convention: environment variable STACKSCOPE_{KIND}_ENDPOINT names the
-        // endpoint (e.g. STACKSCOPE_PYTORCH_ENDPOINT=127.0.0.1:50501). Actually
-        // spawning the process is deferred to the next pass; here we register
-        // an existing endpoint.
         var envKey = $"STACKSCOPE_{request.Kind.ToUpperInvariant()}_ENDPOINT";
         var endpoint = Environment.GetEnvironmentVariable(envKey);
+        System.Diagnostics.Process? spawned = null;
         if (string.IsNullOrWhiteSpace(endpoint))
         {
-            throw new RpcException(new Status(StatusCode.FailedPrecondition,
-                $"No endpoint configured. Set {envKey} to the worker's host:port."));
+            var res = await _launcher.SpawnAsync(request.Kind, context.CancellationToken);
+            endpoint = res.Endpoint;
+            spawned = res.Process;
         }
 
         IRuntimeAdapter adapter = request.Kind.ToLowerInvariant() switch
@@ -94,11 +95,12 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
             _workers[id] = adapter;
             _workerEndpoints[id] = endpoint;
             _workerKinds[id] = request.Kind;
+            if (spawned is not null) _spawnedProcs[id] = spawned;
         }
         return new StartWorkerReply { Worker = new WorkerInfo
         {
             WorkerId = id, Kind = request.Kind, Endpoint = endpoint,
-            Pid = 0, Healthy = true,
+            Pid = spawned?.Id ?? 0, Healthy = true,
         }};
     }
 
@@ -106,13 +108,19 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         StopWorkerRequest request, ServerCallContext context)
     {
         IRuntimeAdapter? adapter;
+        System.Diagnostics.Process? proc;
         lock (_lock)
         {
             _workers.Remove(request.WorkerId, out adapter);
             _workerEndpoints.Remove(request.WorkerId);
             _workerKinds.Remove(request.WorkerId);
+            _spawnedProcs.Remove(request.WorkerId, out proc);
         }
         if (adapter is not null) await adapter.DisposeAsync();
+        if (proc is not null)
+        {
+            try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { }
+        }
         return new StopWorkerReply();
     }
 

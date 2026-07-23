@@ -1,0 +1,25 @@
+<UserControl x:Class="StackScope.Desktop.Controls.TokenScrubber"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Elevated}"
+             Focusable="True" KeyboardNavigation.TabNavigation="Local">
+    <StackPanel Orientation="Horizontal" Margin="8,4">
+        <Button Content="◀" Width="24" Click="OnStepBack"
+                AutomationProperties.Name="Previous token"/>
+        <TextBlock Text="Token" Style="{StaticResource Text.Muted}"
+                   VerticalAlignment="Center" Margin="8,0,4,0"/>
+        <TextBlock Text="{Binding CurrentToken, ElementName=Self}"
+                   Style="{StaticResource Text.Mono}" VerticalAlignment="Center"
+                   MinWidth="32"/>
+        <TextBlock Text="/" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="4,0"/>
+        <TextBlock Text="{Binding MaxToken, ElementName=Self}"
+                   Style="{StaticResource Text.Mono}" VerticalAlignment="Center"
+                   MinWidth="32"/>
+        <Slider Minimum="0" Maximum="{Binding MaxToken, ElementName=Self}"
+                Value="{Binding CurrentToken, ElementName=Self, Mode=TwoWay}"
+                Width="360" Margin="12,0" IsSnapToTickEnabled="True" TickFrequency="1"
+                AutomationProperties.Name="Token scrubber"/>
+        <Button Content="▶" Width="24" Click="OnStepForward"
+                AutomationProperties.Name="Next token"/>
+    </StackPanel>
+</UserControl>

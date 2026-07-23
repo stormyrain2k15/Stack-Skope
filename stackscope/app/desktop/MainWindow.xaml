@@ -124,7 +124,10 @@
         <Border DockPanel.Dock="Top" Padding="12,4"
                 Background="{StaticResource Brush.Surface.Base}"
                 BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,0,0,1">
-            <c:BreadcrumbBar/>
+            <DockPanel LastChildFill="True">
+                <c:TokenScrubber DockPanel.Dock="Right"/>
+                <c:BreadcrumbBar/>
+            </DockPanel>
         </Border>
 
         <Border DockPanel.Dock="Top" Padding="12,6"
@@ -193,6 +196,12 @@
                         </avalonDock:LayoutDocument>
                         <avalonDock:LayoutDocument Title="Compare" ContentId="compare">
                             <v:CompareView DataContext="{Binding CompareVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Heatmap" ContentId="heatmap">
+                            <v:AttentionHeatmapView DataContext="{Binding HeatmapVm}"/>
+                        </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="KV cache" ContentId="kvcache">
+                            <v:KvCacheView DataContext="{Binding KvCacheVm}"/>
                         </avalonDock:LayoutDocument>
                     </avalonDock:LayoutDocumentPane>
 

@@ -1,0 +1,40 @@
+<UserControl x:Class="StackScope.Desktop.Views.AttentionHeatmapView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+    <DockPanel LastChildFill="True">
+        <Border DockPanel.Dock="Top" Padding="8,4"
+                Background="{StaticResource Brush.Surface.Elevated}"
+                BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Attention heatmap" Style="{StaticResource Text.Header}"/>
+                <TextBlock Text="Layer" Style="{StaticResource Text.Muted}" Margin="24,0,4,0" VerticalAlignment="Center"/>
+                <TextBox Width="48" Text="{Binding LayerIndex, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Attention layer"/>
+                <TextBlock Text="Token" Style="{StaticResource Text.Muted}" Margin="16,0,4,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding TokenIndex}" Style="{StaticResource Text.Mono}"
+                           VerticalAlignment="Center"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="16,0,0,0"
+                        AutomationProperties.Name="Refresh heatmap"/>
+                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Text.Muted}"
+                           VerticalAlignment="Center" Margin="16,0,0,0"/>
+            </StackPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding HeadRows}" x:Name="Rows">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="8,2">
+                        <TextBlock Text="{Binding Label}" Style="{StaticResource Text.Mono}"
+                                   Width="60" VerticalAlignment="Center"/>
+                        <Image Source="{Binding Image}" Height="16" Stretch="Fill"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor"
+                               Width="{Binding PixelWidth}"/>
+                        <TextBlock Text="{Binding Entropy, StringFormat='H={0:F3}'}"
+                                   Style="{StaticResource Text.Muted}"
+                                   VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</UserControl>

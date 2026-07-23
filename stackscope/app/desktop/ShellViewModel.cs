@@ -21,6 +21,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public CaptureLibraryViewModel LibraryVm     { get; }
     public ProjectTreeViewModel    ProjectTreeVm { get; }
     public DeviceSelectorViewModel DeviceVm      { get; }
+    public AttentionHeatmapViewModel HeatmapVm   { get; }
+    public KvCacheViewModel        KvCacheVm     { get; }
 
     [ObservableProperty] private string inspectorEventId = "—";
     [ObservableProperty] private string inspectorKind    = "—";
@@ -51,6 +53,8 @@ public sealed partial class ShellViewModel : ObservableObject
         LibraryVm     = new CaptureLibraryViewModel(project);
         ProjectTreeVm = new ProjectTreeViewModel(project);
         DeviceVm      = new DeviceSelectorViewModel();
+        HeatmapVm     = new AttentionHeatmapViewModel(project);
+        KvCacheVm     = new KvCacheViewModel(project);
     }
 
     public void RefreshInspectorFromSelection()
