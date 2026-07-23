@@ -1,0 +1,41 @@
+{
+  "summary": "StackScope iteration-3 backend/Python validation. All 9 acceptance criteria PASS. Full pytest suite: 47 passed, 1 skipped (HF-gated), 0 failed — exactly matches the expected 47/1/0 (up from 41/1/0 in iteration_2). Ruff on workers/inference_worker_py/src is 'All checks passed!'. New device enumeration module (devices.py) and its 6 tests all green. CLI `python3 -m stackscope_worker.devices` prints 'cpu · CPU (16 logical cores) (default)' — CPU-only container, cpu is last and default. JSON mode outputs valid JSON with all 10 required fields (id/kind/name/total_memory_bytes/free_memory_bytes/compute_capability/driver_version/multi_processor_count/is_integrated/is_default). grpc_service.InferenceWorkerServicer._enumerate_devices() legacy shape (list[str]) preserved and returns ['cpu']. proto/worker.proto has DeviceInfo message + field 8 device_info in CapabilitiesReply. proto/coordinator.proto has ListDevices RPC. C# DeviceInfo record has DisplayLabel computed property that formats 'cpu · <name>' for cpu and 'id · name · X GB · cap' for accelerators — matches Python format_display() exactly. All 12 FocusXxx CommandBindings present in MainWindow.xaml wired to OnFocusPane. OnStartCapture opens Views.RunInferenceDialog and OnStopCapture closes it — no stubs. CoordinatorService.ListDevices RPC handler correctly forwards adapter.DeviceDetails into ListDevicesReply. Iteration-1 and iteration-2 tests still pass (no regression).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/stackscope/tests/python_worker_tests/test_devices.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "devices.enumerate_devices() correctly appends cpu last, and marks the first non-cpu device as is_default (falls back to cpu when nothing else present) — verified: on CPU-only container returns [cpu(is_default=True)]; the exactly-one-default invariant holds.",
+    "devices.format_display for cuda:0/24GB/NVIDIA RTX 4090/8.9 renders 'cuda:0 · NVIDIA RTX 4090 · 24 GB · 8.9' — matches WPF DisplayLabel format character-for-character (both use ' · ' separator, {gb:.0f} GB / {gb:F0} GB).",
+    "devices module gracefully handles missing torch/psutil/rocm-smi/torch_directml via ImportError catches and shutil.which() probes — no crashes on bare CPU box. CPU total_memory_bytes is 0 in this container because psutil isn't installed; that is a soft-optional dep and by design does not fail. Consider adding psutil to workers/inference_worker_py requirements to always populate CPU RAM in the dropdown (minor UX polish, not a bug).",
+    "grpc_service._enumerate_devices() delegates to devices.enumerate_devices() and returns [d.id for d in ...] — legacy list[str] shape preserved for external callers as documented in the review request.",
+    "grpc_service.GetCapabilities now emits BOTH devices=[d.id ...] (legacy field) AND device_info=[DeviceInfo(...)] (new rich field 8) — proto backward-compat is intact.",
+    "proto/worker.proto DeviceInfo has all 10 fields with correct types (uint64 for memory, int32 for MP count, bool for flags). Field numbers 1-10 are stable/monotonic.",
+    "proto/coordinator.proto: ListDevices RPC added at rpc index 18 (matching request note); ListDevicesRequest/Reply are correct simple wrappers.",
+    "CoordinatorService.ListDevices handler is async, resolves worker by id, awaits GetCapabilitiesAsync, copies all 10 DeviceInfo fields into the reply — no data loss.",
+    "C# DeviceInfo.DisplayLabel getter is functionally identical to Python format_display: cpu branch returns 'cpu · {Name}', accelerator branch joins {Id, Name (if non-empty), 'X GB' (if gb>0), ComputeCapability (if non-empty)} with ' · '. Locale note: {gb:F0} uses current culture on .NET — if a non-en-US locale is set on the user's machine, integer formatting is still safe (no decimal separator emitted). No fix needed.",
+    "MainWindow.xaml wires all 12 FocusXxx commands (Overview/Tokens/Layers/Attention/Activations/Tensors/Driver/Kernels/Memory/Timeline/Compare/Library) to OnFocusPane with matching CommandParameter strings ('overview','tokens','layers','attention','activations','tensors','driver','kernels','memory','timeline','compare','library'). Nothing is stubbed.",
+    "MainWindow.xaml.cs OnStartCapture: creates RunInferenceDialog with Owner=this, ShowDialog(), on success updates StatusText + SelectionState + OverviewVm.TransactionId + calls RefreshTransactionStats(_project,_query), focuses overview pane. OnStopCapture: closes the active dialog. Both handlers are real — no TODO/NotImplementedException.",
+    "ShellViewModel.DetectDevicesCommand is a real AsyncRelayCommand that calls client.ListDevicesAsync — no stub.",
+    "Iteration-1 fix (LAYER_BEGIN over-count via is_transformer_block gate) and iteration-2 additions (manifest/bundle/dry_run/jsonl_export/repro/tail/mcp_server/attach + golden hash 501ba78b...) all still PASS.",
+    "Ruff still clean: 0 findings across workers/inference_worker_py/src including the new devices.py."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "N/A",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Re-verify with: cd /app/stackscope && STACKSCOPE_SKIP_HF_TESTS=1 PYTHONPATH=workers/inference_worker_py/src python3 -m pytest tests/python_worker_tests -q — expect 47 passed, 1 skipped, 0 failed. Ruff: cd /app/stackscope/workers/inference_worker_py && python3 -m ruff check src — 'All checks passed!'. Container has no CUDA GPU so devices.enumerate_devices() returns only CPU; CUDA/ROCm/DirectML/MPS branches are exercised by unit tests via direct DeviceInfo construction + format_display, not by live probing. WPF/C# cannot be built in Linux — reviewed by reading source; DeviceInfo.DisplayLabel matches Python format_display, all 12 FocusXxx CommandBindings wired, OnStartCapture/OnStopCapture are real. psutil is not installed in the container so CPU total_memory_bytes is 0; not a bug (soft-optional), but adding psutil to requirements would populate CPU RAM in the dropdown.",
+  "rca_of_the_issue": "N/A — no issues found in this iteration."
+}

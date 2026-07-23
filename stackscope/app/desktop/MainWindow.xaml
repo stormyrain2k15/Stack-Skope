@@ -64,6 +64,18 @@
         <CommandBinding Command="{x:Static cmd:Commands.OpenPalette}"        Executed="OnOpenPalette"/>
         <CommandBinding Command="{x:Static cmd:Commands.SaveLayout}"         Executed="OnSaveLayout"/>
         <CommandBinding Command="{x:Static cmd:Commands.ResetLayout}"        Executed="OnResetLayout"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusOverview}"      Executed="OnFocusPane" CommandParameter="overview"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusTokens}"        Executed="OnFocusPane" CommandParameter="tokens"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusLayers}"        Executed="OnFocusPane" CommandParameter="layers"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusAttention}"     Executed="OnFocusPane" CommandParameter="attention"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusActivations}"   Executed="OnFocusPane" CommandParameter="activations"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusTensors}"       Executed="OnFocusPane" CommandParameter="tensors"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusDriver}"        Executed="OnFocusPane" CommandParameter="driver"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusKernels}"       Executed="OnFocusPane" CommandParameter="kernels"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusMemory}"        Executed="OnFocusPane" CommandParameter="memory"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusTimeline}"      Executed="OnFocusPane" CommandParameter="timeline"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusCompare}"       Executed="OnFocusPane" CommandParameter="compare"/>
+        <CommandBinding Command="{x:Static cmd:Commands.FocusLibrary}"       Executed="OnFocusPane" CommandParameter="library"/>
         <CommandBinding Command="{x:Static cmd:Commands.InspectHooks}"       Executed="OnFocusPane" CommandParameter="hooksinspect"/>
         <CommandBinding Command="{x:Static cmd:Commands.BundleWorkbench}"    Executed="OnFocusPane" CommandParameter="bundles"/>
         <CommandBinding Command="{x:Static cmd:Commands.LiveTail}"           Executed="OnFocusPane" CommandParameter="livetail"/>
@@ -148,9 +160,24 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <TextBlock Text="Device:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <ComboBox ItemsSource="{Binding DeviceVm.Devices}"
-                              SelectedItem="{Binding DeviceVm.SelectedDevice}"
-                              MinWidth="120"
-                              AutomationProperties.Name="Inference device"/>
+                              SelectedItem="{Binding DeviceVm.Selected}"
+                              MinWidth="280"
+                              ToolTip="{Binding DeviceVm.DetectStatus}"
+                              AutomationProperties.Name="Inference device">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding DisplayLabel}" FontFamily="Consolas"/>
+                                    <TextBlock Text="  (default)" Style="{StaticResource Text.Muted}"
+                                               Visibility="{Binding IsDefault, Converter={StaticResource BoolVis}}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Content="Detect" Command="{Binding DetectDevicesCommand}"
+                            MinWidth="72" Margin="6,0,0,0"
+                            ToolTip="Re-query the worker for its available accelerators."
+                            AutomationProperties.Name="Detect devices"/>
                     <TextBlock Text="Mode:" Style="{StaticResource Text.Muted}"
                                VerticalAlignment="Center" Margin="16,0,6,0"/>
                     <TextBlock Text="{Binding Disclosure}" Style="{StaticResource Text.Body}"

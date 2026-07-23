@@ -1,0 +1,73 @@
+<Window x:Class="StackScope.Desktop.Views.RunInferenceDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Start Capture — Run Inference"
+        Height="480" Width="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Brush.Surface.Panel}">
+  <Grid Margin="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="Start Capture" Style="{StaticResource Text.Header}"
+               FontSize="{StaticResource Type.Display}" Margin="0,0,0,4"/>
+    <TextBlock Grid.Row="1" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Margin="0,0,0,10"
+               Text="Runs the loaded model on the selected device with the prompt below. Every layer, attention head, activation, kernel and memory op is captured into a new transaction you can inspect immediately."/>
+
+    <Border Grid.Row="2" BorderThickness="1" BorderBrush="{StaticResource Brush.Border}"
+            Background="{StaticResource Brush.Surface.Elevated}" Padding="6">
+      <TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
+               AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+               FontFamily="Cascadia Mono, Consolas"
+               AutomationProperties.Name="Inference prompt"/>
+    </Border>
+
+    <Grid Grid.Row="3" Margin="0,10,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="70"/>
+        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="70"/>
+        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="70"/>
+        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="70"/>
+        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="80"/>
+      </Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="MaxTokens" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+      <TextBox   Grid.Column="1" Text="{Binding MaxNewTokens, UpdateSourceTrigger=PropertyChanged}" Margin="4,0"/>
+      <TextBlock Grid.Column="2" Text="Temp"      Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+      <TextBox   Grid.Column="3" Text="{Binding Temperature, UpdateSourceTrigger=PropertyChanged}" Margin="4,0"/>
+      <TextBlock Grid.Column="4" Text="TopP"      Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+      <TextBox   Grid.Column="5" Text="{Binding TopP, UpdateSourceTrigger=PropertyChanged}" Margin="4,0"/>
+      <TextBlock Grid.Column="6" Text="TopK"      Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+      <TextBox   Grid.Column="7" Text="{Binding TopK, UpdateSourceTrigger=PropertyChanged}" Margin="4,0"/>
+      <TextBlock Grid.Column="8" Text="Seed"      Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+      <TextBox   Grid.Column="9" Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" Margin="4,0"/>
+    </Grid>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,10">
+      <TextBlock Text="Device: " Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+      <TextBlock Text="{Binding DeviceLabel}" Style="{StaticResource Text.Mono}"
+                 Foreground="{StaticResource Brush.Accent.Cyan}"
+                 VerticalAlignment="Center"/>
+      <TextBlock Text="   Ablate L:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="16,0,4,0"/>
+      <TextBox Width="50" Text="{Binding AblateLayer, UpdateSourceTrigger=PropertyChanged}"/>
+      <TextBlock Text=" H:" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="6,0,4,0"/>
+      <TextBox Width="50" Text="{Binding AblateHead, UpdateSourceTrigger=PropertyChanged}"/>
+      <TextBlock Text="   (-1 = no ablation)" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+    </StackPanel>
+
+    <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+      <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Muted}"
+                 VerticalAlignment="Center" Margin="0,0,16,0"/>
+      <Button Content="Cancel" MinWidth="80" IsCancel="True"
+              Click="OnCancel" AutomationProperties.Name="Cancel inference"/>
+      <Button Content="Start capture" MinWidth="140" Margin="8,0,0,0"
+              IsDefault="True" Click="OnStart"
+              AutomationProperties.Name="Start inference capture"/>
+    </StackPanel>
+  </Grid>
+</Window>

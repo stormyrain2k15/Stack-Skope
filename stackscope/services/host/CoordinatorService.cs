@@ -124,6 +124,30 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         return new StopWorkerReply();
     }
 
+    public override async Task<ListDevicesReply> ListDevices(
+        ListDevicesRequest request, ServerCallContext context)
+    {
+        var adapter = ResolveWorker(request.WorkerId);
+        var caps = await adapter.GetCapabilitiesAsync(context.CancellationToken);
+        var reply = new ListDevicesReply();
+        foreach (var d in caps.DeviceDetails)
+        {
+            reply.Devices.Add(new DeviceInfo
+            {
+                Id = d.Id, Kind = d.Kind, Name = d.Name,
+                TotalMemoryBytes = d.TotalMemoryBytes,
+                FreeMemoryBytes = d.FreeMemoryBytes,
+                ComputeCapability = d.ComputeCapability,
+                DriverVersion = d.DriverVersion,
+                MultiProcessorCount = d.MultiProcessorCount,
+                IsIntegrated = d.IsIntegrated,
+                IsDefault = d.IsDefault,
+            });
+        }
+        return reply;
+    }
+
+
     public override async Task<CoordLoadModelReply> LoadModel(
         CoordLoadModelRequest request, ServerCallContext context)
     {

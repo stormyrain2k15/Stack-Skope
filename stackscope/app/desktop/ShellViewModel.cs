@@ -98,6 +98,50 @@ public sealed partial class ShellViewModel : ObservableObject
         AttributionVm    = new AttributionGraphViewModel(project);
         NotesVm          = new AnnotationsViewModel(project);
         NaturalQueryVm   = new NaturalQueryViewModel();
+
+        DetectDevicesCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(DetectDevicesAsync);
+    }
+
+    public CommunityToolkit.Mvvm.Input.IAsyncRelayCommand DetectDevicesCommand { get; }
+
+    /// <summary>
+    /// Ask the current worker (or a freshly-started pytorch worker if
+    /// none exists) for its available accelerators and populate the
+    /// device dropdown. Called on the Detect button in the top bar.
+    /// </summary>
+    public async Task DetectDevicesAsync()
+    {
+        try
+        {
+            using var chan = Grpc.Net.Client.GrpcChannel.ForAddress(
+                Environment.GetEnvironmentVariable("STACKSCOPE_COORDINATOR_ENDPOINT")
+                    ?? "http://127.0.0.1:50600");
+            var client = new StackScope.Proto.V1.Coordinator.CoordinatorClient(chan);
+
+            // Find or start a worker.
+            var list = await client.ListWorkersAsync(new StackScope.Proto.V1.ListWorkersRequest());
+            string workerId;
+            if (list.Workers.Count == 0)
+            {
+                var started = await client.StartWorkerAsync(new StackScope.Proto.V1.StartWorkerRequest
+                { Kind = "pytorch" });
+                workerId = started.Worker.WorkerId;
+            }
+            else workerId = list.Workers[0].WorkerId;
+
+            var reply = await client.ListDevicesAsync(new StackScope.Proto.V1.ListDevicesRequest
+            { WorkerId = workerId });
+
+            var infos = reply.Devices.Select(d => new StackScope.Adapters.Runtimes.DeviceInfo(
+                d.Id, d.Kind, d.Name, d.TotalMemoryBytes, d.FreeMemoryBytes,
+                d.ComputeCapability, d.DriverVersion, d.MultiProcessorCount,
+                d.IsIntegrated, d.IsDefault)).ToList();
+            DeviceVm.ReportDiscoveredDevices(infos);
+        }
+        catch (Exception ex)
+        {
+            DeviceVm.DetectStatus = "Detect failed: " + ex.Message;
+        }
     }
 
     public void RefreshInspectorFromSelection()

@@ -90,6 +90,7 @@ underneath. The CLIs stay first-class for automation and scripting.
 
 | WPF view                | CLI it wraps                       | What it does |
 | ----------------------- | ---------------------------------- | ------------ |
+| Device dropdown + Detect| `stackscope-devices`               | Rich accelerator enumeration (CUDA/ROCm/DirectML/MPS/CPU) with name, VRAM, compute cap, driver version |
 | Hooks Inspector         | `stackscope-dry-run`               | Print module classification table (blocks / attn projs / layer ids) |
 | Numerical Health        | (in-proc `NumericalHealth`)        | Per-layer NaN/Inf, entropy stats, latency outliers |
 | Quantization Diff       | (in-proc `QuantizationDiff`)       | f16 vs quant divergence; first-token, first-layer, energy delta |

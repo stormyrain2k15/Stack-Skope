@@ -108,10 +108,34 @@ public partial class MainWindow : Window
         }
     }
 
+    private RunInferenceDialog? _runDialog;
+
     private void OnStartCapture(object sender, ExecutedRoutedEventArgs e)
-        => StatusText.Text = "Capture requires a running coordinator/worker. See docs/CAPTURE.md.";
+    {
+        _runDialog = new Views.RunInferenceDialog { Owner = this };
+        var ok = _runDialog.ShowDialog();
+        if (ok == true && _runDialog.TransactionId is not null)
+        {
+            StatusText.Text = $"Capture complete: {_runDialog.TransactionId}";
+            SelectionState.Current.TransactionId = _runDialog.TransactionId;
+            _shell.OverviewVm.TransactionId = _runDialog.TransactionId;
+            _shell.OverviewVm.RefreshTransactionStats(_project, _query);
+            FocusPane("overview");
+        }
+        else StatusText.Text = "Capture cancelled or produced no transaction.";
+        _runDialog = null;
+    }
+
     private void OnStopCapture(object sender, ExecutedRoutedEventArgs e)
-        => StatusText.Text = "Capture stop.";
+    {
+        if (_runDialog is not null)
+        {
+            // The dialog owns its CancellationTokenSource; ask it to close.
+            _runDialog.Close();
+            StatusText.Text = "Capture stop requested.";
+        }
+        else StatusText.Text = "No capture is running.";
+    }
     private void OnBackSelection(object sender, ExecutedRoutedEventArgs e) => SelectionState.Current.GoBack();
     private void OnForwardSelection(object sender, ExecutedRoutedEventArgs e) => SelectionState.Current.GoForward();
     private void OnDisclosureSimple(object sender, ExecutedRoutedEventArgs e)   => WorkspaceState.Current.Disclosure = DisclosureMode.Simple;

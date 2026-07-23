@@ -51,6 +51,26 @@ stackscope/
 ## Non-negotiable rules held
 No stubs. No mock data. Deferred items honestly absent. Every visual bound to a real event id. Correlation confidence labelled. Out-of-process capture. Keyboard-complete. Progressive disclosure.
 
+## GPU selection & detection (Feb 2026)
+- **New Python module** `stackscope_worker/devices.py` — rich
+  accelerator enumeration returning `DeviceInfo` records (id, kind,
+  name, total/free VRAM, compute capability, driver version). Handles
+  CUDA (torch + nvidia-smi fallback), ROCm (torch-rocm + rocm-smi
+  fallback), DirectML (torch_directml), Apple MPS, and CPU. Flags one
+  device as `is_default=True`. Exposed via `stackscope-devices` CLI.
+- **Proto**: added `DeviceInfo` message to `worker.proto` (field 8 of
+  `CapabilitiesReply` as new optional list; legacy `devices` string
+  list preserved on field 4). Added `Coordinator.ListDevices` RPC to
+  `coordinator.proto`.
+- **Coordinator**: `CoordinatorService.ListDevices` forwards to the
+  worker's `GetCapabilities` and returns the rich list.
+- **WPF**: `DeviceSelectorViewModel` now holds `ObservableCollection<DeviceInfo>`;
+  the top-bar dropdown renders "cuda:0 · NVIDIA RTX 4090 · 24 GB · 8.9"
+  with `(default)` badge, tooltip showing detect status, and a
+  **Detect** button that calls `Shell.DetectDevicesAsync`. The
+  selection persists in `WorkspaceState.SelectedDevice` and gets
+  forwarded on every `LoadModel` RPC.
+
 ## Verified in this environment
 - 190+ files, Python parses + `ruff` clean, all YAML workflows parse clean.
 - Python worker tests: **41 passed, 1 skipped, 0 failed** (HF network test skipped).

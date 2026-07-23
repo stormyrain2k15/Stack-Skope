@@ -27,7 +27,35 @@ public sealed record WorkerCapabilities(
     IReadOnlyList<string> Devices,
     bool SupportsAttention,
     bool SupportsActivations,
-    bool SupportsTensorReadback);
+    bool SupportsTensorReadback,
+    IReadOnlyList<DeviceInfo> DeviceDetails);
+
+public sealed record DeviceInfo(
+    string Id,
+    string Kind,
+    string Name,
+    ulong TotalMemoryBytes,
+    ulong FreeMemoryBytes,
+    string ComputeCapability,
+    string DriverVersion,
+    int MultiProcessorCount,
+    bool IsIntegrated,
+    bool IsDefault)
+{
+    public string DisplayLabel
+    {
+        get
+        {
+            if (Kind == "cpu") return $"cpu · {Name}";
+            var gb = TotalMemoryBytes / (double)(1024L * 1024 * 1024);
+            var parts = new List<string> { Id };
+            if (!string.IsNullOrEmpty(Name)) parts.Add(Name);
+            if (gb > 0)                     parts.Add($"{gb:F0} GB");
+            if (!string.IsNullOrEmpty(ComputeCapability)) parts.Add(ComputeCapability);
+            return string.Join(" · ", parts);
+        }
+    }
+}
 
 public sealed record LoadModelArgs(
     string ModelPath,

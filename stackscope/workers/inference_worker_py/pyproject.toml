@@ -29,6 +29,7 @@ stackscope-tail     = "stackscope_worker.tail:main"
 stackscope-mcp      = "stackscope_worker.mcp_server:main"
 stackscope-attach   = "stackscope_worker.attach:main"
 stackscope-jsonl    = "stackscope_worker.jsonl_export:main"
+stackscope-devices  = "stackscope_worker.devices:main"
 
 [build-system]
 requires = ["setuptools>=68"]

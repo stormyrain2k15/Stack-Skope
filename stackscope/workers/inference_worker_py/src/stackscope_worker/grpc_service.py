@@ -63,14 +63,29 @@ class InferenceWorkerServicer:
     # ---- Service interface ------------------------------------------------
 
     def GetCapabilities(self, request, context):
+        from . import devices as _devices_mod
+        rich = _devices_mod.enumerate_devices()
+        device_info_msgs = []
+        for d in rich:
+            device_info_msgs.append(self._wp.DeviceInfo(
+                id=d.id, kind=d.kind, name=d.name,
+                total_memory_bytes=d.total_memory_bytes,
+                free_memory_bytes=d.free_memory_bytes,
+                compute_capability=d.compute_capability,
+                driver_version=d.driver_version,
+                multi_processor_count=d.multi_processor_count,
+                is_integrated=d.is_integrated,
+                is_default=d.is_default,
+            ))
         return self._wp.CapabilitiesReply(
             worker_kind="pytorch",
             version="0.1.0",
             supported_formats=["safetensors", "hf_repo"],
-            devices=self._enumerate_devices(),
+            devices=[d.id for d in rich],   # legacy simple list
             supports_attention=True,
             supports_activations=True,
             supports_tensor_readback=True,
+            device_info=device_info_msgs,
         )
 
     def LoadModel(self, request, context):
@@ -339,18 +354,10 @@ class InferenceWorkerServicer:
     # ---- helpers ---------------------------------------------------------
 
     def _enumerate_devices(self) -> list[str]:
-        devs = ["cpu"]
-        if torch.cuda.is_available():
-            devs.extend(f"cuda:{i}" for i in range(torch.cuda.device_count()))
-        try:
-            import torch_directml  # type: ignore
-            for i in range(torch_directml.device_count()):
-                devs.append(f"dml:{i}")
-        except Exception:
-            pass
-        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
-            devs.append("mps")
-        return devs
+        # Legacy helper kept for callers outside GetCapabilities.
+        # For rich enumeration use `devices.enumerate_devices()`.
+        from . import devices as _dm
+        return [d.id for d in _dm.enumerate_devices()]
 
     def _to_proto(self, e: Event, txid: str, event_id: int):
         markers = []

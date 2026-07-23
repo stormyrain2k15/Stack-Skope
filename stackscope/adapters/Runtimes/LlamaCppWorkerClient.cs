@@ -29,9 +29,14 @@ public sealed class LlamaCppWorkerClient : IRuntimeAdapter
     public async Task<WorkerCapabilities> GetCapabilitiesAsync(CancellationToken ct)
     {
         var r = await Client.GetCapabilitiesAsync(new CapabilitiesRequest(), cancellationToken: ct);
+        var details = r.DeviceInfo.Select(d => new DeviceInfo(
+            d.Id, d.Kind, d.Name, d.TotalMemoryBytes, d.FreeMemoryBytes,
+            d.ComputeCapability, d.DriverVersion, d.MultiProcessorCount,
+            d.IsIntegrated, d.IsDefault)).ToArray();
         return new WorkerCapabilities(r.WorkerKind, r.Version,
             r.SupportedFormats.ToArray(), r.Devices.ToArray(),
-            r.SupportsAttention, r.SupportsActivations, r.SupportsTensorReadback);
+            r.SupportsAttention, r.SupportsActivations, r.SupportsTensorReadback,
+            details);
     }
 
     public async Task<LoadedModelInfo> LoadModelAsync(LoadModelArgs args, CancellationToken ct)

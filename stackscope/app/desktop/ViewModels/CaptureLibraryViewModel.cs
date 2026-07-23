@@ -58,6 +58,30 @@ public sealed partial class OverviewViewModel : ObservableObject
                 TransactionId = SelectionState.Current.TransactionId;
         };
     }
+
+    /// <summary>
+    /// Pull real counts + completion status for the current transaction
+    /// from the project + query services. Called after a capture
+    /// finishes and whenever the user opens a project that already has
+    /// transactions.
+    /// </summary>
+    public void RefreshTransactionStats(StackScope.Services.ProjectService project,
+                                        StackScope.Services.QueryService query)
+    {
+        if (string.IsNullOrWhiteSpace(TransactionId)) return;
+        var meta = project.ListTransactions()
+            .FirstOrDefault(t => t.TransactionId == TransactionId);
+        if (meta is not null)
+        {
+            TransactionCompleted = meta.Completed;
+            if (string.IsNullOrEmpty(Architecture)) Architecture = meta.Architecture;
+        }
+        TransactionEventCount = query.Count(TransactionId!, new StackScope.Core.Queries.EventQuery());
+        TransactionTokenCount = (int)query.Count(TransactionId!, new StackScope.Core.Queries.EventQuery
+        {
+            Kinds = new[] { StackScope.Core.Transactions.EventKind.TokenEnd },
+        });
+    }
 }
 
 /// <summary>Compare view — pairs two transactions for A/B analysis.</summary>

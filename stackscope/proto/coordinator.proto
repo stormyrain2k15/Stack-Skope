@@ -13,6 +13,10 @@ service Coordinator {
   rpc StartWorker(StartWorkerRequest) returns (StartWorkerReply);
   rpc StopWorker(StopWorkerRequest)   returns (StopWorkerReply);
 
+  // Enumerate accelerators visible to a worker. Populates the WPF
+  // device dropdown with rich info (name, VRAM, compute capability).
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesReply);
+
   rpc LoadModel(CoordLoadModelRequest)    returns (CoordLoadModelReply);
   rpc RunInference(CoordRunRequest)       returns (stream RunProgress);
   rpc CancelInference(CancelRequest)      returns (CancelReply);
@@ -46,6 +50,9 @@ message StartWorkerReply { WorkerInfo worker = 1; }
 
 message StopWorkerRequest { string worker_id = 1; }
 message StopWorkerReply {}
+
+message ListDevicesRequest { string worker_id = 1; }
+message ListDevicesReply { repeated DeviceInfo devices = 1; }
 
 message CoordLoadModelRequest {
   string worker_id     = 1;
