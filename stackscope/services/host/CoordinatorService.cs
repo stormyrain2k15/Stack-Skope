@@ -215,6 +215,15 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
         _log.LogInformation("Capture pipeline attached: {Backend} for txn {Txid}",
             driverDesc, txid);
 
+        // Persist the run parameters needed by the WPF auto-compare
+        // flow: to find "the last non-ablated capture of this prompt"
+        // we need to store both the prompt and the ablation setting on
+        // the transaction. Empty prompt is stored as empty string so
+        // the field is always readable back.
+        store.Index.SetMeta("prompt", request.Prompt ?? "");
+        store.Index.SetMeta("ablate_layer", request.AblateLayer.ToString());
+        store.Index.SetMeta("ablate_head",  request.AblateHead.ToString());
+
         var args = new RunInferenceArgs(
             txid, request.ModelHandle, request.Prompt,
             request.MaxNewTokens, request.Temperature, request.TopP,

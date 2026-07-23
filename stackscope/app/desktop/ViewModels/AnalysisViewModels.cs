@@ -80,5 +80,7 @@ public sealed partial class AblationViewModel : ObservableObject
     [ObservableProperty] private string status =
         "Set layer/head ≥ 0, then press F5 (Start Capture). The values here seed the "
         + "capture dialog and are forwarded through RunInference so the worker zeroes that head "
-        + "before returning. -1/-1 means no ablation.";
+        + "before returning. When the ablated capture finishes, StackScope automatically opens "
+        + "Diff Mode against the newest non-ablated run of the same prompt so you see the head's "
+        + "contribution in one click. -1/-1 means no ablation.";
 }

@@ -45,6 +45,13 @@ public sealed class CaptureService
         store.Index.SetMeta("model_handle", args.ModelHandle);
         store.Index.SetMeta("started_ns", txn.StartedNs.ToString());
         store.Index.SetMeta("completed", "false");
+        // Persist the run params so ProjectService.ListTransactions can
+        // expose them (prompt for auto-compare match, ablate_layer/head
+        // for the WasAblated predicate). Empty prompt is stored as empty
+        // string so the reader always finds the key.
+        store.Index.SetMeta("prompt", args.Prompt ?? "");
+        store.Index.SetMeta("ablate_layer", args.AblateLayer.ToString());
+        store.Index.SetMeta("ablate_head",  args.AblateHead.ToString());
 
         var pipeline = new CapturePipeline(store);
         foreach (var b in driverBackends) pipeline.Register(b);

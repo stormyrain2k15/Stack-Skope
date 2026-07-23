@@ -167,6 +167,22 @@ looked functional but its value never reached the runtime:
    before generation so the timeline shows *why* the requested advanced
    events aren't present — no more silent drops.
 
+5. **Ablation A/B Auto-Compare (Feb 2026 followup).** Persisted
+   `prompt` / `ablate_layer` / `ablate_head` into every capture's
+   SQLite index (both `CoordinatorService.RunInference` and
+   `CaptureService.RunAsync`). Extended `TransactionMetadata` with
+   these fields plus a `WasAblated` predicate. Added
+   `ProjectService.FindLatestNonAblatedBaseline()` which returns the
+   newest completed non-ablated run of the same prompt (and same model
+   when both handles are known, else prompt-equality wins).
+   `MainWindow.OnStartCapture` now inspects the just-finished
+   transaction: if it was ablated, it auto-seeds `CompareVm.Left =
+   baseline`, `CompareVm.Right = ablated`, invokes `RunCommand`, and
+   focuses the Compare pane. When no baseline exists we say so out
+   loud in the status bar rather than silently doing nothing. Five new
+   xUnit tests in `ProjectServiceAutoCompareTests.cs` cover the
+   baseline search branches.
+
 All 54 Python tests pass. C# code changes are static-analysis verified
 (cannot compile WPF in the Linux container).
 

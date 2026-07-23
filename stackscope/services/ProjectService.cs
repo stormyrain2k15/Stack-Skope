@@ -62,6 +62,8 @@ public sealed class ProjectService
                 using var idx = new SqliteIndex(sqlite);
                 bool completed = string.Equals(idx.GetMeta("completed"), "true",
                     StringComparison.OrdinalIgnoreCase);
+                int ablateLayer = int.TryParse(idx.GetMeta("ablate_layer"), out var al) ? al : -1;
+                int ablateHead  = int.TryParse(idx.GetMeta("ablate_head"),  out var ah) ? ah : -1;
                 list.Add(new TransactionMetadata(
                     txid,
                     idx.GetMeta("model_handle") ?? "",
@@ -69,17 +71,50 @@ public sealed class ProjectService
                     long.TryParse(idx.GetMeta("started_ns"), out var s) ? s : 0,
                     long.TryParse(idx.GetMeta("ended_ns"), out var e) ? e : 0,
                     completed,
-                    idx.GetMeta("error")));
+                    idx.GetMeta("error"),
+                    idx.GetMeta("prompt") ?? "",
+                    ablateLayer,
+                    ablateHead));
             }
             catch
             {
                 // Corrupt / partial index — surface as partial capture.
                 list.Add(new TransactionMetadata(
-                    txid, "", "", 0, 0, false, "index unreadable"));
+                    txid, "", "", 0, 0, false, "index unreadable", "", -1, -1));
             }
         }
         list.Sort((a, b) => b.StartedNs.CompareTo(a.StartedNs));
         return list;
+    }
+
+    /// <summary>
+    /// Find the newest completed transaction that ran the same prompt as
+    /// <paramref name="reference"/> but with <b>no</b> ablation set. Used
+    /// by the WPF "auto-compare" flow: after an ablated capture, we
+    /// pre-seed Diff Mode with the closest non-ablated baseline so the
+    /// user sees the head's contribution in one click.
+    /// Returns <c>null</c> if no baseline exists (e.g. user ran the
+    /// ablated capture before ever running a plain one).
+    /// </summary>
+    public TransactionMetadata? FindLatestNonAblatedBaseline(TransactionMetadata reference)
+    {
+        if (reference is null || string.IsNullOrEmpty(reference.Prompt)) return null;
+        foreach (var t in ListTransactions())      // already sorted newest → oldest
+        {
+            if (t.TransactionId == reference.TransactionId) continue;
+            if (!t.Completed) continue;
+            if (t.AblateLayer >= 0 || t.AblateHead >= 0) continue;
+            if (!string.Equals(t.Prompt, reference.Prompt, StringComparison.Ordinal)) continue;
+            // Prefer same model when the metadata is present on both sides;
+            // when either side has no model handle recorded (older
+            // captures), fall back to prompt-equality alone rather than
+            // returning nothing.
+            if (!string.IsNullOrEmpty(t.ModelHandle) &&
+                !string.IsNullOrEmpty(reference.ModelHandle) &&
+                t.ModelHandle != reference.ModelHandle) continue;
+            return t;
+        }
+        return null;
     }
 }
 
@@ -90,4 +125,10 @@ public sealed record TransactionMetadata(
     long   StartedNs,
     long   EndedNs,
     bool   Completed,
-    string? Error);
+    string? Error,
+    string Prompt,
+    int    AblateLayer,
+    int    AblateHead)
+{
+    public bool WasAblated => AblateLayer >= 0 && AblateHead >= 0;
+}

@@ -169,7 +169,45 @@ public partial class MainWindow : Window
             SelectionState.Current.TransactionId = _runDialog.TransactionId;
             _shell.OverviewVm.TransactionId = _runDialog.TransactionId;
             _shell.OverviewVm.RefreshTransactionStats(_project, _query);
-            FocusPane("overview");
+
+            // Auto-compare: if this capture ran with head ablation, find
+            // the newest completed non-ablated capture of the same prompt
+            // and seed Diff Mode so the user sees the head's contribution
+            // in one click. If no baseline exists we say so out loud —
+            // no silent no-op.
+            var justRan = _project.ListTransactions()
+                .FirstOrDefault(t => t.TransactionId == _runDialog.TransactionId);
+            if (justRan is not null && justRan.WasAblated)
+            {
+                var baseline = _project.FindLatestNonAblatedBaseline(justRan);
+                if (baseline is not null)
+                {
+                    _shell.CompareVm.LeftTransactionId  = baseline.TransactionId;   // baseline
+                    _shell.CompareVm.RightTransactionId = justRan.TransactionId;    // ablated
+                    _shell.LibraryVm.Refresh();
+                    // Kick off the diff asynchronously (RunCommand is an
+                    // IAsyncRelayCommand) and swap the active pane so
+                    // the user sees the ranked table populate live.
+                    _shell.CompareVm.RunCommand.Execute(null);
+                    FocusPane("compare");
+                    StatusText.Text =
+                        $"Ablated capture {justRan.TransactionId} — auto-diffing "
+                        + $"against baseline {baseline.TransactionId} "
+                        + $"(L{justRan.AblateLayer} H{justRan.AblateHead}).";
+                }
+                else
+                {
+                    FocusPane("overview");
+                    StatusText.Text =
+                        $"Ablated capture done ({justRan.TransactionId}). "
+                        + "No non-ablated baseline of this prompt found — "
+                        + "run the same prompt with L/H = -1/-1 to enable auto-compare.";
+                }
+            }
+            else
+            {
+                FocusPane("overview");
+            }
         }
         else StatusText.Text = "Capture cancelled or produced no transaction.";
         _runDialog = null;
