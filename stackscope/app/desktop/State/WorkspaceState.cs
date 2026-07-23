@@ -32,6 +32,14 @@ public sealed partial class WorkspaceState : ObservableObject
     /// requested backend wasn't compiled in.
     /// </summary>
     [ObservableProperty] private string? resolvedDevice;
+    /// <summary>
+    /// True if the worker read placement back from llama.cpp's real
+    /// per-layer device map (or torch's `.to(device)`). False when
+    /// llama.cpp is older than mid-2024 and we're reflecting the
+    /// request without confirmation. The UI badges this so nobody
+    /// mistakes "asked" for "verified".
+    /// </summary>
+    [ObservableProperty] private bool resolvedDeviceVerified;
     [ObservableProperty] private string? recoveryBanner;
 
     /// <summary>Bindable helpers used by view visibility triggers.</summary>

@@ -57,6 +57,8 @@ struct ss_worker {
     int32_t               vocab_size;
     char                  arch[32];
     char                  resolved_device[32];
+    int                   resolved_verified;   /* 1 = readback via llama_model_dev_layer succeeded */
+    int                   requested_pinned;    /* 1 = user pinned a specific device */
 };
 
 /* ---- Device enumeration -------------------------------------------------
@@ -137,28 +139,118 @@ int32_t ss_enumerate_devices(ss_device_info_t* out, int32_t max) {
     return n;
 }
 
-/* Which device did llama.cpp actually land the KV/weights on? Reads the
- * first non-CPU device out of the enumeration if any layers were offloaded,
- * otherwise reports "cpu". Cached at load time so callers don't re-scan. */
-static void probe_resolved_device(struct llama_model* model, char out[32]) {
-    strncpy(out, "cpu", 31); out[31] = 0;
-    if (!model) return;
-    ss_device_info_t buf[16];
-    int32_t n = ss_enumerate_devices(buf, 16);
-    for (int i = 0; i < n; i++) {
-        if (strcmp(buf[i].kind, "cpu") != 0) {
-            strncpy(out, buf[i].id, 31); out[31] = 0;
+/* (probe_resolved_device removed — replaced by read_actual_placement
+ * which either reads back llama.cpp's real placement via
+ * llama_model_dev_layer() or honestly flags the result as unverified.
+ * The old function silently returned "first non-CPU device", which
+ * lied on multi-vendor rigs.) */
+
+/* Parse a StackScope device string ("cpu" | "cuda:N" | "hip:N" |
+ * "vulkan:N" | "" | "auto") and apply it to llama_model_params.
+ * Returns 1 if the parse was strict (user pinned a device), 0 if the
+ * caller should treat placement as auto-selected by llama.cpp.
+ *
+ * We deliberately force split_mode=NONE when the user pinned a device
+ * so llama.cpp does not tensor-split across every GPU. That is the
+ * whole point of the dropdown. */
+static int apply_device_hint(struct llama_model_params* mp, const char* hint,
+                             char parsed_kind[16], int32_t* parsed_index) {
+    parsed_kind[0] = 0;
+    *parsed_index = -1;
+    if (!hint || !*hint || strcmp(hint, "auto") == 0) return 0;
+    if (strcmp(hint, "cpu") == 0) {
+        mp->n_gpu_layers = 0;
+        strncpy(parsed_kind, "cpu", 15);
+        *parsed_index = 0;
+        return 1;
+    }
+    /* "<kind>:<index>" */
+    const char* colon = strchr(hint, ':');
+    if (!colon) return 0;
+    size_t klen = (size_t)(colon - hint);
+    if (klen == 0 || klen > 15) return 0;
+    memcpy(parsed_kind, hint, klen);
+    parsed_kind[klen] = 0;
+    long idx = strtol(colon + 1, NULL, 10);
+    if (idx < 0) return 0;
+    *parsed_index = (int32_t)idx;
+    mp->main_gpu = (int32_t)idx;
+    mp->n_gpu_layers = 999;
+    mp->split_mode = LLAMA_SPLIT_MODE_NONE;
+    return 1;
+}
+
+/* Read back llama.cpp's actual placement decision after load. Uses
+ * llama_model_dev_layer() if available at compile time; otherwise
+ * falls back to the requested id and marks the readback as unverified
+ * via w->resolved_verified so the UI can badge it honestly. Callers
+ * that want the description of the device also get *dev_desc filled. */
+static void read_actual_placement(const struct llama_model* model,
+                                  const char* requested_kind,
+                                  int32_t     requested_index,
+                                  char resolved_out[32],
+                                  int*  verified_out) {
+    strncpy(resolved_out, "cpu", 31); resolved_out[31] = 0;
+    *verified_out = 0;
+
+#ifdef LLAMA_HAS_MODEL_DEV_LAYER
+    /* Preferred path: ask llama.cpp which backend device layer 0 landed
+     * on. Returns the ggml_backend_dev_t for that layer. */
+    ggml_backend_dev_t dev = llama_model_dev_layer(model, 0);
+    if (dev) {
+        enum ggml_backend_dev_type dt = ggml_backend_dev_type(dev);
+        if (dt == GGML_BACKEND_DEVICE_TYPE_CPU) {
+            strncpy(resolved_out, "cpu", 31);
+            *verified_out = 1;
             return;
         }
+        ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+        const char* bname = reg ? ggml_backend_reg_name(reg) : "";
+        char kind[16] = {0};
+        ll_backend_kind(bname, kind, sizeof(kind));
+
+        /* Recover the per-kind index by scanning ggml_backend_dev_get. */
+        int fam = 0;
+        size_t total = ggml_backend_dev_count();
+        for (size_t i = 0; i < total; ++i) {
+            ggml_backend_dev_t di = ggml_backend_dev_get(i);
+            if (!di || di == dev) continue;
+            if (ggml_backend_dev_type(di) == GGML_BACKEND_DEVICE_TYPE_CPU) continue;
+            ggml_backend_reg_t r2 = ggml_backend_dev_backend_reg(di);
+            const char* bn2 = r2 ? ggml_backend_reg_name(r2) : "";
+            char k2[16] = {0};
+            ll_backend_kind(bn2, k2, sizeof(k2));
+            if (strcmp(k2, kind) == 0) fam++;
+            if (di == dev) break;
+        }
+        snprintf(resolved_out, 32, "%s:%d", kind, fam);
+        *verified_out = 1;
+        return;
     }
+#else
+    (void)model;
+#endif
+    /* Fallback: report the requested placement but flag it unverified so
+     * the UI can badge "requested — not confirmed by llama.cpp". */
+    if (requested_kind[0] && requested_index >= 0) {
+        if (strcmp(requested_kind, "cpu") == 0) {
+            strncpy(resolved_out, "cpu", 31);
+        } else {
+            snprintf(resolved_out, 32, "%s:%d", requested_kind, requested_index);
+        }
+    }
+    *verified_out = 0;
 }
 
 ss_worker_t* ss_worker_create(const char* gguf_path, int32_t n_ctx,
                               const char* device_hint) {
-    (void)device_hint;
     llama_backend_init();
     struct llama_model_params mp = llama_model_default_params();
-    mp.n_gpu_layers = 999;   /* let llama.cpp offload as much as it can */
+    mp.n_gpu_layers = 999;   /* auto-offload as default */
+
+    char req_kind[16] = {0};
+    int32_t req_index = -1;
+    int pinned = apply_device_hint(&mp, device_hint, req_kind, &req_index);
 
     struct llama_model* model = llama_model_load_from_file(gguf_path, mp);
     if (!model) {
@@ -190,7 +282,12 @@ ss_worker_t* ss_worker_create(const char* gguf_path, int32_t n_ctx,
     } else {
         strncpy(w->arch, "unknown", sizeof(w->arch) - 1);
     }
-    probe_resolved_device(model, w->resolved_device);
+
+    int verified = 0;
+    read_actual_placement(model, req_kind, req_index,
+                          w->resolved_device, &verified);
+    w->resolved_verified = verified;
+    w->requested_pinned  = pinned;
 
     /* Default sampler chain: temperature + top-k + top-p + dist. Real
      * values are set per-run in ss_worker_run(). */
@@ -222,10 +319,13 @@ void ss_worker_model_info(const ss_worker_t* w,
     if (vocab_size)  *vocab_size  = w->vocab_size;
 }
 
-void ss_worker_resolved_device(const ss_worker_t* w, char device_out[32]) {
-    if (!w) { strncpy(device_out, "cpu", 31); device_out[31] = 0; return; }
+void ss_worker_resolved_device(const ss_worker_t* w, char device_out[32],
+                               int* verified_out) {
+    if (!w) { strncpy(device_out, "cpu", 31); device_out[31] = 0;
+              if (verified_out) *verified_out = 0; return; }
     strncpy(device_out, w->resolved_device, 31);
     device_out[31] = 0;
+    if (verified_out) *verified_out = w->resolved_verified;
 }
 
 

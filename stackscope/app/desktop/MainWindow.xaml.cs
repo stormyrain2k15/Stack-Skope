@@ -135,8 +135,11 @@ public partial class MainWindow : Window
 
             WorkspaceState.Current.CurrentModelHandle = reply.ModelHandle;
             WorkspaceState.Current.ResolvedDevice     = reply.ResolvedDevice;
+            WorkspaceState.Current.ResolvedDeviceVerified = reply.ResolvedDeviceVerified;
             StatusText.Text =
-                $"Loaded {reply.Architecture} on {reply.ResolvedDevice} — handle {reply.ModelHandle}";
+                $"Loaded {reply.Architecture} on {reply.ResolvedDevice}"
+                + (reply.ResolvedDeviceVerified ? " (verified)" : " (requested, unverified)")
+                + $" — handle {reply.ModelHandle}";
         }
         catch (Exception ex)
         {

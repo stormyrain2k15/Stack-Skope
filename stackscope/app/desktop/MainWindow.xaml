@@ -174,9 +174,18 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <Border Background="{StaticResource Brush.Accent.Cyan}" Padding="6,2" Margin="6,0,0,0"
-                            CornerRadius="4"
-                            ToolTip="The accelerator the loaded model actually landed on, as reported by the worker. Distinct from the requested device — llama.cpp will fall back to CPU if the requested backend wasn't compiled in.">
+                    <Border Padding="6,2" Margin="6,0,0,0" CornerRadius="4"
+                            ToolTip="Where the model actually landed, as reported by the worker. Green = verified via llama_model_dev_layer / torch .to(device). Yellow = requested but unconfirmed (llama.cpp older than mid-2024).">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#8B7500"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ResolvedDeviceVerified}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource Brush.Accent.Cyan}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <TextBlock>
                             <Run Text="on: "/><Run Text="{Binding ResolvedDevice, FallbackValue='—'}" FontFamily="Consolas"/>
                         </TextBlock>

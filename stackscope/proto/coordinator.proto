@@ -75,6 +75,7 @@ message CoordLoadModelReply {
   // this so users see e.g. "cuda:0 · NVIDIA RTX 4090" (matched to the
   // corresponding device_info entry from ListDevices).
   string resolved_device = 8;
+  bool   resolved_device_verified = 9;
 }
 
 message CoordRunRequest {

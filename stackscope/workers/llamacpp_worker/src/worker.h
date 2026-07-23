@@ -70,8 +70,15 @@ void ss_worker_model_info(const ss_worker_t* w,
 
 /* Which device did llama.cpp actually land on for this worker?
  * Fills `device_out` with e.g. "cuda:0" / "hip:1" / "vulkan:0" / "cpu".
- * Buffer must be at least 32 bytes. */
-void ss_worker_resolved_device(const ss_worker_t* w, char device_out[32]);
+ * Buffer must be at least 32 bytes.
+ *
+ * `verified_out`: 1 if the id was read back from llama.cpp's real
+ * placement (via llama_model_dev_layer), 0 if it reflects the user's
+ * request but could not be confirmed at compile-time. The UI shows
+ * a "requested" badge when unverified so the user doesn't confuse
+ * "we asked for X" with "llama.cpp confirmed X". */
+void ss_worker_resolved_device(const ss_worker_t* w, char device_out[32],
+                               int* verified_out);
 
 /* ---- Device enumeration ------------------------------------------------
  *

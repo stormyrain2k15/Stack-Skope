@@ -166,6 +166,7 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
             VocabSize = info.VocabSize,
             TransactionScopeId = Ulid.NewUlid(),
             ResolvedDevice = info.ResolvedDevice ?? "",
+            ResolvedDeviceVerified = info.ResolvedDeviceVerified,
         };
     }
 

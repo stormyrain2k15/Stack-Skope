@@ -73,6 +73,22 @@ target_link_libraries(stackscope_llamacpp_worker PRIVATE
     gRPC::grpc++
     protobuf::libprotobuf)
 
+# Compile-time detection of llama_model_dev_layer() (mid-2024+ llama.cpp).
+# When present, worker reads real per-layer placement from llama.cpp.
+# When absent, worker reflects the user's request and flags it unverified
+# on LoadModelReply.resolved_device_verified so the WPF UI can badge it
+# accurately instead of silently lying about placement.
+include(CheckCXXSymbolExists)
+set(CMAKE_REQUIRED_INCLUDES "${LLAMA_ROOT}/include" "${LLAMA_ROOT}")
+check_cxx_symbol_exists(llama_model_dev_layer "llama.h" HAS_LLAMA_MODEL_DEV_LAYER)
+if(HAS_LLAMA_MODEL_DEV_LAYER)
+    target_compile_definitions(stackscope_llamacpp_worker PRIVATE LLAMA_HAS_MODEL_DEV_LAYER=1)
+    message(STATUS "StackScope: llama_model_dev_layer detected — real placement readback enabled.")
+else()
+    message(WARNING "StackScope: llama_model_dev_layer not found — worker will flag placement as unverified. Update the llama.cpp submodule to a mid-2024+ checkout.")
+endif()
+
+
 if(WIN32)
     target_link_libraries(stackscope_llamacpp_worker PRIVATE ws2_32)
 endif()

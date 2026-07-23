@@ -56,7 +56,8 @@ public sealed class PythonWorkerClient : IRuntimeAdapter
         return new LoadedModelInfo(
             reply.ModelHandle, reply.Architecture,
             reply.NLayers, reply.NHeads, reply.HiddenSize, reply.VocabSize,
-            reply.ResolvedDevice ?? "");
+            reply.ResolvedDevice ?? "",
+            reply.ResolvedDeviceVerified);
     }
 
     public async Task UnloadModelAsync(string modelHandle, CancellationToken ct)

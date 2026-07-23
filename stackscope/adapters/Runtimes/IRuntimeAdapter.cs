@@ -71,7 +71,8 @@ public sealed record LoadedModelInfo(
     int NHeads,
     int HiddenSize,
     int VocabSize,
-    string ResolvedDevice);
+    string ResolvedDevice,
+    bool ResolvedDeviceVerified);
 
 public sealed record RunInferenceArgs(
     string TransactionId,

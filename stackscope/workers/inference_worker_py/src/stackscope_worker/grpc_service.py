@@ -115,6 +115,10 @@ class InferenceWorkerServicer:
             hidden_size=getattr(cfg, "hidden_size", getattr(cfg, "n_embd", 0)),
             vocab_size=getattr(cfg, "vocab_size", 0),
             resolved_device=str(device),
+            # Python path: torch actually placed the tensors on `device`
+            # (we called `.to(device)` ourselves), so this readback is
+            # authoritative — flag it verified.
+            resolved_device_verified=True,
         )
 
     def _resolve_device(self, requested: str) -> str:

@@ -77,7 +77,8 @@ public:
         int32_t nL = 0, nH = 0, hs = 0, vs = 0;
         ss_worker_model_info(worker_, arch, &nL, &nH, &hs, &vs);
         char resolved[32] = {0};
-        ss_worker_resolved_device(worker_, resolved);
+        int  verified = 0;
+        ss_worker_resolved_device(worker_, resolved, &verified);
         reply->set_model_handle("m-0");
         reply->set_architecture(arch);
         reply->set_n_layers(nL);
@@ -85,6 +86,7 @@ public:
         reply->set_hidden_size(hs);
         reply->set_vocab_size(vs);
         reply->set_resolved_device(resolved);
+        reply->set_resolved_device_verified(verified != 0);
         return grpc::Status::OK;
     }
 

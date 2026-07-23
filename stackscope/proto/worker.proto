@@ -78,6 +78,11 @@ message LoadModelReply {
   // device dropdown with this value so the user knows which capture
   // backend to attach.
   string resolved_device = 7;
+  // True if the worker read the placement back from llama.cpp's real
+  // per-layer device map (llama_model_dev_layer). False means we are
+  // reflecting the user's request without confirmation. The WPF badges
+  // this so users don't confuse "asked" with "verified".
+  bool   resolved_device_verified = 8;
 }
 
 message UnloadModelRequest { string model_handle = 1; }
