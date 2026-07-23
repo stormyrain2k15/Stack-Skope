@@ -203,6 +203,9 @@
                         <avalonDock:LayoutDocument Title="KV cache" ContentId="kvcache">
                             <v:KvCacheView DataContext="{Binding KvCacheVm}"/>
                         </avalonDock:LayoutDocument>
+                        <avalonDock:LayoutDocument Title="Analysis" ContentId="analysis">
+                            <v:AnalysisView/>
+                        </avalonDock:LayoutDocument>
                     </avalonDock:LayoutDocumentPane>
 
                     <avalonDock:LayoutAnchorablePane DockWidth="320">

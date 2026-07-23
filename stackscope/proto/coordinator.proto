@@ -75,6 +75,8 @@ message CoordRunRequest {
   int32  top_k           = 7;
   uint64 seed            = 8;
   CaptureLevel capture_level = 9;
+  int32 ablate_layer = 10;
+  int32 ablate_head  = 11;
 }
 
 message RunProgress {

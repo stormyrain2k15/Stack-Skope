@@ -1,0 +1,72 @@
+<UserControl x:Class="StackScope.Desktop.Views.AnalysisView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Surface.Panel}">
+    <ScrollViewer>
+      <StackPanel Margin="16">
+        <TextBlock Text="Analysis Lab" Style="{StaticResource Text.Header}"
+                   FontSize="{StaticResource Type.Display}" Margin="0,0,0,12"/>
+
+        <TextBlock Text="Prompt-replay divergence" Style="{StaticResource Text.Header}" Margin="0,8,0,4"/>
+        <TextBlock Style="{StaticResource Text.Muted}"
+                   Text="Paste 2+ transaction ids (same prompt, different seeds). Reports first divergent token + earliest layer past σ threshold."/>
+        <TextBox Text="{Binding DivergenceVm.RunsInput, UpdateSourceTrigger=PropertyChanged}"
+                 AcceptsReturn="True" MinHeight="60" Margin="0,4"
+                 AutomationProperties.Name="Divergence run ids"/>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="σ threshold" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+          <TextBox Width="64" Margin="6,0"
+                   Text="{Binding DivergenceVm.SigmaThreshold, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Divergence sigma threshold"/>
+          <Button Content="Analyze" Command="{Binding DivergenceVm.AnalyzeCommand}"
+                  AutomationProperties.Name="Run divergence analysis"/>
+        </StackPanel>
+        <TextBlock Text="{Binding DivergenceVm.Result}" Style="{StaticResource Text.Mono}" Margin="0,8"/>
+
+        <TextBlock Text="Circuit trace" Style="{StaticResource Text.Header}" Margin="0,16,0,4"/>
+        <TextBlock Style="{StaticResource Text.Muted}"
+                   Text="Walks activation dependencies backwards from the selected token."/>
+        <StackPanel Orientation="Horizontal" Margin="0,4">
+          <TextBlock Text="Token" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+          <TextBox Width="48" Margin="6,0"
+                   Text="{Binding CircuitVm.TokenIndex, UpdateSourceTrigger=PropertyChanged}"/>
+          <Button Content="Trace" Command="{Binding CircuitVm.TraceCommand}"
+                  AutomationProperties.Name="Run circuit trace"/>
+          <TextBlock Text="{Binding CircuitVm.Status}" Style="{StaticResource Text.Muted}"
+                     VerticalAlignment="Center" Margin="16,0,0,0"/>
+        </StackPanel>
+        <ListView ItemsSource="{Binding CircuitVm.Path}" Height="220" Margin="0,4">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="Event"  Width="70" DisplayMemberBinding="{Binding EventId}"/>
+              <GridViewColumn Header="Kind"   Width="140" DisplayMemberBinding="{Binding Kind}"/>
+              <GridViewColumn Header="L / H"  Width="80">
+                <GridViewColumn.CellTemplate>
+                  <DataTemplate>
+                    <TextBlock Style="{StaticResource Text.Mono}">
+                      <Run Text="{Binding Layer}"/><Run Text=" · "/><Run Text="{Binding Head}"/>
+                    </TextBlock>
+                  </DataTemplate>
+                </GridViewColumn.CellTemplate>
+              </GridViewColumn>
+              <GridViewColumn Header="Label" Width="360" DisplayMemberBinding="{Binding Label}"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+
+        <TextBlock Text="Attention head ablation" Style="{StaticResource Text.Header}" Margin="0,16,0,4"/>
+        <TextBlock Style="{StaticResource Text.Muted}"
+                   Text="Zeroes the selected head at capture time. Compare the resulting transaction against the baseline via Diff Mode to measure that head's contribution."/>
+        <StackPanel Orientation="Horizontal" Margin="0,6">
+          <TextBlock Text="Layer" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
+          <TextBox Width="48" Margin="6,0"
+                   Text="{Binding AblationVm.AblateLayer, UpdateSourceTrigger=PropertyChanged}"/>
+          <TextBlock Text="Head" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+          <TextBox Width="48" Margin="6,0"
+                   Text="{Binding AblationVm.AblateHead, UpdateSourceTrigger=PropertyChanged}"/>
+          <TextBlock Text="{Binding AblationVm.Status}" Style="{StaticResource Text.Muted}"
+                     VerticalAlignment="Center" Margin="16,0,0,0"/>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+</UserControl>

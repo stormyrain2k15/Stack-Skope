@@ -53,7 +53,9 @@ public sealed record RunInferenceArgs(
     float TopP,
     int TopK,
     ulong Seed,
-    CaptureLevel Level);
+    CaptureLevel Level,
+    int AblateLayer = -1,
+    int AblateHead  = -1);
 
 public enum CaptureLevel { Simple = 0, Advanced = 1, Forensic = 2 }
 

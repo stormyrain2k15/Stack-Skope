@@ -23,6 +23,9 @@ public sealed partial class ShellViewModel : ObservableObject
     public DeviceSelectorViewModel DeviceVm      { get; }
     public AttentionHeatmapViewModel HeatmapVm   { get; }
     public KvCacheViewModel        KvCacheVm     { get; }
+    public DivergenceViewModel     DivergenceVm  { get; }
+    public CircuitTraceViewModel   CircuitVm     { get; }
+    public AblationViewModel       AblationVm    { get; }
 
     [ObservableProperty] private string inspectorEventId = "—";
     [ObservableProperty] private string inspectorKind    = "—";
@@ -55,6 +58,9 @@ public sealed partial class ShellViewModel : ObservableObject
         DeviceVm      = new DeviceSelectorViewModel();
         HeatmapVm     = new AttentionHeatmapViewModel(project);
         KvCacheVm     = new KvCacheViewModel(project);
+        DivergenceVm  = new DivergenceViewModel(project);
+        CircuitVm     = new CircuitTraceViewModel(project);
+        AblationVm    = new AblationViewModel();
     }
 
     public void RefreshInspectorFromSelection()

@@ -145,6 +145,42 @@ class InferenceWorkerServicer:
         hooks.attach(model)
         anomaly = AnomalyDetector()
 
+        ablate_layer = getattr(request, "ablate_layer", -1)
+        ablate_head  = getattr(request, "ablate_head", -1)
+        ablation_handles = []
+        if ablate_layer >= 0 and ablate_head >= 0:
+            for name, mod in model.named_modules():
+                if not is_top_level_attention(mod): continue
+                parts = name.split(".")
+                li = next((int(p) for p in parts if p.isdigit()), -1)
+                if li != ablate_layer: continue
+
+                def zero_head(m, args, kwargs, output, _h=ablate_head):
+                    def zero_tensor(t):
+                        if not isinstance(t, torch.Tensor) or t.ndim < 3: return t
+                        n_heads = getattr(m, "num_heads", None) or \
+                                  getattr(m, "n_head", None) or \
+                                  getattr(getattr(m, "config", None), "num_attention_heads", None)
+                        if not n_heads: return t
+                        try:
+                            b, s, hidden = t.shape
+                        except ValueError:
+                            return t
+                        if hidden % n_heads != 0: return t
+                        head_dim = hidden // n_heads
+                        t = t.clone()
+                        t[..., _h*head_dim:(_h+1)*head_dim] = 0
+                        return t
+                    if isinstance(output, torch.Tensor):
+                        return zero_tensor(output)
+                    if isinstance(output, tuple):
+                        return tuple(zero_tensor(x) if isinstance(x, torch.Tensor) else x
+                                     for x in output)
+                    return output
+                ablation_handles.append(
+                    mod.register_forward_hook(zero_head, with_kwargs=True))
+                break
+
         # Per-head attention capture: wrap each top-level attention module.
         attn_handles = []
         current_token_ref = [0]
@@ -248,6 +284,7 @@ class InferenceWorkerServicer:
         finally:
             hooks.detach()
             for h in attn_handles: h.remove()
+            for h in ablation_handles: h.remove()
             while True:
                 pending = hooks.events(timeout=0.0)
                 if not pending: break

@@ -70,6 +70,12 @@ message RunInferenceRequest {
   // Progressive disclosure: worker only pays capture cost for what the UI
   // asks for. Coordinator forwards the current mode.
   CaptureLevel capture_level = 9;
+
+  // Optional attention ablation: when both are set, the top-level
+  // attention module at `ablate_layer` has its output for head
+  // `ablate_head` zeroed before returning. Use -1 for "no ablation".
+  int32 ablate_layer = 10;
+  int32 ablate_head  = 11;
 }
 
 enum CaptureLevel {

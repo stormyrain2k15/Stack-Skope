@@ -161,7 +161,8 @@ public sealed class CoordinatorService : Coordinator.CoordinatorBase
             txid, request.ModelHandle, request.Prompt,
             request.MaxNewTokens, request.Temperature, request.TopP,
             request.TopK, request.Seed,
-            (CaptureLevel)(int)request.CaptureLevel);
+            (CaptureLevel)(int)request.CaptureLevel,
+            request.AblateLayer, request.AblateHead);
 
         ulong count = 0;
         int tokens = 0;
