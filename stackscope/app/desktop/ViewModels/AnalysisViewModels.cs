@@ -77,6 +77,24 @@ public sealed partial class AblationViewModel : ObservableObject
 {
     [ObservableProperty] private int ablateLayer = -1;
     [ObservableProperty] private int ablateHead  = -1;
+
+    /// <summary>
+    /// Side ordering for the auto-diff opened after an ablated capture.
+    /// false (default) = Left: baseline, Right: ablated — the standard
+    /// "control vs treatment" convention read left-to-right.
+    /// true = Left: ablated, Right: baseline — useful when the eye
+    /// should land on the run you just triggered.
+    /// </summary>
+    [ObservableProperty] private bool autoCompareAblatedOnLeft;
+
+    /// <summary>
+    /// Sigma threshold seeded into <c>CompareDiffViewModel</c> when the
+    /// auto-diff kicks off. Ablation shifts are often subtle, so 1.0σ
+    /// is a friendlier default than the 1.5σ CompareView uses for
+    /// unrelated A/B analysis. User can override before pressing F5.
+    /// </summary>
+    [ObservableProperty] private double autoCompareSigma = 1.0;
+
     [ObservableProperty] private string status =
         "Set layer/head ≥ 0, then press F5 (Start Capture). The values here seed the "
         + "capture dialog and are forwarded through RunInference so the worker zeroes that head "

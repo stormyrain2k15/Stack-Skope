@@ -182,17 +182,33 @@ public partial class MainWindow : Window
                 var baseline = _project.FindLatestNonAblatedBaseline(justRan);
                 if (baseline is not null)
                 {
-                    _shell.CompareVm.LeftTransactionId  = baseline.TransactionId;   // baseline
-                    _shell.CompareVm.RightTransactionId = justRan.TransactionId;    // ablated
+                    // Honour the AnalysisView toggles: side order + sigma
+                    // threshold seed. Without these the auto-diff would
+                    // silently override whatever the user configured
+                    // right next to the ablation controls.
+                    if (_shell.AblationVm.AutoCompareAblatedOnLeft)
+                    {
+                        _shell.CompareVm.LeftTransactionId  = justRan.TransactionId;
+                        _shell.CompareVm.RightTransactionId = baseline.TransactionId;
+                    }
+                    else
+                    {
+                        _shell.CompareVm.LeftTransactionId  = baseline.TransactionId;
+                        _shell.CompareVm.RightTransactionId = justRan.TransactionId;
+                    }
+                    _shell.CompareVm.SigmaThreshold = _shell.AblationVm.AutoCompareSigma;
                     _shell.LibraryVm.Refresh();
                     // Kick off the diff asynchronously (RunCommand is an
                     // IAsyncRelayCommand) and swap the active pane so
                     // the user sees the ranked table populate live.
                     _shell.CompareVm.RunCommand.Execute(null);
                     FocusPane("compare");
+                    var order = _shell.AblationVm.AutoCompareAblatedOnLeft
+                                ? "ablated ⇆ baseline" : "baseline ⇆ ablated";
                     StatusText.Text =
                         $"Ablated capture {justRan.TransactionId} — auto-diffing "
-                        + $"against baseline {baseline.TransactionId} "
+                        + $"({order}) against baseline {baseline.TransactionId} "
+                        + $"at {_shell.CompareVm.SigmaThreshold:F2}σ "
                         + $"(L{justRan.AblateLayer} H{justRan.AblateHead}).";
                 }
                 else

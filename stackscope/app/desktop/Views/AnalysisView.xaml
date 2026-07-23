@@ -56,17 +56,30 @@
 
         <TextBlock Text="Attention head ablation" Style="{StaticResource Text.Header}" Margin="0,16,0,4"/>
         <TextBlock Style="{StaticResource Text.Muted}"
-                   Text="Zeroes the selected head at capture time. Compare the resulting transaction against the baseline via Diff Mode to measure that head's contribution."/>
+                   Text="Zeroes the selected head at capture time. When the ablated run finishes, StackScope auto-opens Diff Mode against the newest non-ablated capture of the same prompt."/>
         <StackPanel Orientation="Horizontal" Margin="0,6">
           <TextBlock Text="Layer" Style="{StaticResource Text.Muted}" VerticalAlignment="Center"/>
           <TextBox Width="48" Margin="6,0"
-                   Text="{Binding AblationVm.AblateLayer, UpdateSourceTrigger=PropertyChanged}"/>
+                   Text="{Binding AblationVm.AblateLayer, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Ablation layer index"/>
           <TextBlock Text="Head" Style="{StaticResource Text.Muted}" VerticalAlignment="Center" Margin="12,0,0,0"/>
           <TextBox Width="48" Margin="6,0"
-                   Text="{Binding AblationVm.AblateHead, UpdateSourceTrigger=PropertyChanged}"/>
-          <TextBlock Text="{Binding AblationVm.Status}" Style="{StaticResource Text.Muted}"
-                     VerticalAlignment="Center" Margin="16,0,0,0"/>
+                   Text="{Binding AblationVm.AblateHead, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Ablation head index"/>
+          <TextBlock Text="Auto-diff σ" Style="{StaticResource Text.Muted}"
+                     VerticalAlignment="Center" Margin="18,0,0,0"
+                     ToolTip="Sigma threshold seeded into Diff Mode when the ablated capture finishes."/>
+          <TextBox Width="48" Margin="6,0"
+                   Text="{Binding AblationVm.AutoCompareSigma, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="Auto-diff sigma threshold"/>
+          <CheckBox Content="Ablated on left"
+                    Margin="14,0,0,0" VerticalAlignment="Center"
+                    IsChecked="{Binding AblationVm.AutoCompareAblatedOnLeft}"
+                    ToolTip="Left: ablated / Right: baseline. Uncheck for the standard baseline-vs-ablated order."
+                    AutomationProperties.Name="Auto-compare side ordering"/>
         </StackPanel>
+        <TextBlock Text="{Binding AblationVm.Status}" Style="{StaticResource Text.Muted}"
+                   TextWrapping="Wrap" Margin="0,4,0,0"/>
       </StackPanel>
     </ScrollViewer>
 </UserControl>
